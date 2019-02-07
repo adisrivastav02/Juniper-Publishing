@@ -7,9 +7,6 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import com.google.cloud.storage.Blob;
-import com.google.cloud.storage.BlobId;
-import com.google.cloud.storage.StorageOptions;
 import com.iig.gcp.utils.ConnectionUtils;
 import com.iig.gcp.utils.DBUtils;
 
@@ -92,7 +89,7 @@ public class DataPublishingRepositoryImpl implements IDataPublishingRepository{
 	}
 
 	@Override
-	public String getMetaDataPath(String src_sys_id, String run_id) throws SQLException {
+	public String getMetaDataPath(String src_sys_id, String run_id) throws Exception {
 		System.out.println("System id selected is :  " + src_sys_id);
 		String path = "";
 		if (src_sys_id != null) {
@@ -122,7 +119,7 @@ public class DataPublishingRepositoryImpl implements IDataPublishingRepository{
 	
 	
 	@Override
-	public void saveMetadataChanges(List<MetadataChangeDto> dtos)throws SQLException{
+	public void saveMetadataChanges(List<MetadataChangeDto> dtos)throws Exception{
 			Connection conn = null;
 			try {
 				conn = connectionUtils.getConnection();
@@ -160,7 +157,7 @@ public class DataPublishingRepositoryImpl implements IDataPublishingRepository{
 	
 	
 	@Override
-	public void updateDataType(DataTypeMappingDto dto)throws SQLException{
+	public void updateDataType(DataTypeMappingDto dto)throws Exception{
 		Connection conn = null;
 		try {
 			conn = connectionUtils.getConnection();

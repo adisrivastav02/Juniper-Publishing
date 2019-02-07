@@ -8,7 +8,7 @@ public class OracleConstants {
 	public final static String ORACLE_IP_PORT_SID="35.227.48.30:1521:ORCL";
 	public static final String HIVE_DRIVER = "org.apache.hive.jdbc.HiveDriver";
 	//public final static String ORACLE_DB_NAME="juniper_admin";
-	public final static String ORACLE_DB_NAME="juniper_admin";
+	//public final static String ORACLE_DB_NAME="juniper_admin";
 	public final static String ORACLE_JDBC_URL="jdbc:oracle:thin:@"+ORACLE_IP_PORT_SID+"";
 	public static final String ORACLE_PASSWORD = "Infy123##";
 	public static final String masterKeyLocation = "/home/birajrath2008/key/master_key.txt";

@@ -1,6 +1,6 @@
 package com.iig.gcp.publishing.service;
 
-import java.io.IOException;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -20,16 +20,17 @@ public interface IDataPublishingRepository {
 	//public String publishData(PublishDto dto) throws Exception;
 	//public void refreshMetaData(String src_sys_id)throws Exception;
 	
-	public String getMetaDataPath(String src_sys_id, String run_id) throws SQLException;
+	public String getMetaDataPath(String src_sys_id, String run_id) throws SQLException, Exception;
 	//public void cleanSourceSystem(String src_sys_id) throws SQLException;
 	//public void cleanPublishSourceSystem(String src_sys_id) throws SQLException;
 	
 	//public void resetBigQuery(String datasetId, String tableId, String runId , String service_account_name) throws InterruptedException, IOException;
 	
-	public void saveMetadataChanges(List<MetadataChangeDto> dtos)throws SQLException;
+	public void saveMetadataChanges(List<MetadataChangeDto> dtos)throws SQLException, Exception;
 	public void updateDataType(DataTypeMappingDto dto)throws Exception;
 	public int getPublishingFeedId(String googleProjectName, String targetDSName)throws Exception;
 	public String getFeedExtractionType(String feedName)throws Exception;
 	public void insertScheduleMetadataWithDependent(String extractFeedSequence,String pubFeedSequence, String feedUniqueName,String gcpName,String saNAme, String projectId)throws Exception;
+	
 	
 }

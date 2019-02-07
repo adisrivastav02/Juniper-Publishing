@@ -20,20 +20,12 @@ import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.iig.gcp.constants.OracleConstants;
-
 import com.iig.gcp.publishing.service.DataTypeMappingDto;
 import com.iig.gcp.publishing.service.FilePartitionDetailsDto;
 import com.iig.gcp.publishing.service.MetadataChangeDto;
 import com.iig.gcp.publishing.service.ScheduleJobDetails;
 import com.iig.gcp.publishing.service.SystemBean;
 
-/*
-import com.iig.gcp.publishing.controller.dto.DataTypeMappingDto;
-import com.iig.gcp.publishing.controller.dto.FilePartitionDetailsDto;
-import com.iig.gcp.publishing.controller.dto.MetadataChangeDto;
-import com.iig.gcp.publishing.controller.dto.ScheduleJobDetails;
-import com.iig.gcp.publishing.controller.dto.SystemBean;
-*/
 
 public class DBUtils {
 
@@ -52,7 +44,7 @@ public class DBUtils {
 	public static int insertSystemTargetValue(Connection conn, ArrayList<SystemBean> systemBeans,
 			boolean extracted_Source,String tgt_type, String tgt_dataset,String service_account_name, String google_proj_name, String ext_feed_id,String pub_feed_name, int project_sequence, String userName) throws SQLException {
 		String tableName1 = "source_system_master";
-		String tableName2 = "JUNIPER_ADMIN.JUNIPER_PUB_FEED_DTLS";
+		String tableName2 = "JUNIPER_PUB_FEED_DTLS";
 		String src_sys_id = "";
 		pub_feed_name = google_proj_name + ":" + tgt_dataset + ":" + ext_feed_id;
 		/*for (SystemBean bean : systemBeans) {
@@ -161,7 +153,7 @@ public class DBUtils {
 
 	public static void insertFileValue(Connection conn,  int pub_feed_id , int project_sequence, String ext_feed_id, String userName) throws SQLException {
 
-		String tableName = "JUNIPER_ADMIN.JUNIPER_PUB_FEED_FILE_DTLS";
+		String tableName = "JUNIPER_PUB_FEED_FILE_DTLS";
 		Map<String, String> src_sys_ids = new HashMap<String, String>();
 		/*for (FileBean fBean : fileBeans) {
 			String src_sys_id = "";
@@ -228,7 +220,7 @@ public class DBUtils {
 
 	public static void insertFieldValue(Connection conn, int pub_feed_id, String ext_feed_id, String userName) throws SQLException {
 
-		String tableName = "JUNIPER_ADMIN.JUNIPER_PUB_FEED_FLD_DTLS";
+		String tableName = "JUNIPER_PUB_FEED_FLD_DTLS";
 		Map<String, String> src_sys_ids = new HashMap<String, String>();
 
 		/*for (FieldBean fBean : fieldBeans) {
@@ -295,7 +287,7 @@ public class DBUtils {
 	
 	private static String getDataTypeMappingQuery(int pub_feed_id, String sourceColume, Connection conn) throws SQLException {
 		String src_type = getSourceType(pub_feed_id, conn);
-		String query = "select SRC_DATA_TYP,TGT_DATA_TYP from JUNIPER_ADMIN.MSTR_DATATYPE_LINK_DTLS where SRC_DB_TYP='"+src_type.toUpperCase() + "'";
+		String query = "select SRC_DATA_TYP,TGT_DATA_TYP from MSTR_DATATYPE_LINK_DTLS where SRC_DB_TYP='"+src_type.toUpperCase() + "'";
 		Statement statement=conn.createStatement();
 		ResultSet rs = statement.executeQuery(query);
 		String buffer = "";
@@ -311,7 +303,7 @@ public class DBUtils {
 	}
 
 	public static String getSourceType(int pub_feed_id, Connection conn) throws SQLException {
-		String query = "select FEED_SRC_TYPE from JUNIPER_ADMIN.JUNIPER_PUB_FEED_DTLS where PUB_FEED_SEQUENCE="+pub_feed_id;
+		String query = "select FEED_SRC_TYPE from JUNIPER_PUB_FEED_DTLS where PUB_FEED_SEQUENCE="+pub_feed_id;
 		Statement statement=conn.createStatement();
 		ResultSet rs = statement.executeQuery(query);
 		while(rs.next()) {
@@ -516,7 +508,7 @@ public static void updateDataType(DataTypeMappingDto dto, Connection conn)throws
 
 
 
-public static String insertScheduleMetadata(Connection conn,String feed_name,String project,String cron) throws SQLException {
+public static String insertScheduleMetadata(Connection conn,String feed_name, String gcp_name, String tgt_name, String project,String cron) throws SQLException {
 
 	Statement statement=conn.createStatement();
 	String insertQuery="";
@@ -557,12 +549,15 @@ public static String insertScheduleMetadata(Connection conn,String feed_name,Str
 					if(minutes.contains(",")) {
 						for(String minute:minutes.split(",")) {
 							insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
-									.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,daily_flag,job_schedule_time,project_id")
+									.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,daily_flag,job_schedule_time,project_id")
 									.replace("{$data}",OracleConstants.QUOTE+feed_name+"_dailyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+feed_name+"_dailyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+gcp_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+hour+":"+minute+":00"+OracleConstants.QUOTE
 											+OracleConstants.COMMA+project_sequence);
@@ -573,12 +568,15 @@ public static String insertScheduleMetadata(Connection conn,String feed_name,Str
 						}
 					}else {
 						insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
-								.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,daily_flag,job_schedule_time,project_id")
+								.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,daily_flag,job_schedule_time,project_id")
 								.replace("{$data}",OracleConstants.QUOTE+feed_name+"_dailyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+feed_name+"_dailyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+gcp_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+hour+":"+minutes+":00"+OracleConstants.QUOTE
 										+OracleConstants.COMMA+project_sequence);;
@@ -590,12 +588,15 @@ public static String insertScheduleMetadata(Connection conn,String feed_name,Str
 				if(minutes.contains(",")) {
 					for(String minute:minutes.split(",")) {
 						insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
-								.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,daily_flag,job_schedule_time,project_id")
+								.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,daily_flag,job_schedule_time,project_id")
 								.replace("{$data}",OracleConstants.QUOTE+feed_name+"_dailyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+feed_name+"_dailyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+gcp_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+hours+":"+minute+":00"+OracleConstants.QUOTE
 										+OracleConstants.COMMA+project_sequence);
@@ -606,12 +607,15 @@ public static String insertScheduleMetadata(Connection conn,String feed_name,Str
 					}
 				}else {
 					insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
-							.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,daily_flag,job_schedule_time,project_id")
+							.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,daily_flag,job_schedule_time,project_id")
 							.replace("{$data}",OracleConstants.QUOTE+feed_name+"_dailyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 									+OracleConstants.QUOTE+feed_name+"dailyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 									+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
 									+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
 									+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+gcp_name+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
 									+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
 									+OracleConstants.QUOTE+hours+":"+minutes+":00"+OracleConstants.QUOTE
 									+OracleConstants.COMMA+project_sequence);
@@ -627,12 +631,15 @@ public static String insertScheduleMetadata(Connection conn,String feed_name,Str
 							if(minutes.contains(",")) {
 								for(String minute:minutes.split(",")) {
 									insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
-											.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,daily_flag,job_schedule_time,project_id")
+											.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,daily_flag,job_schedule_time,project_id")
 											.replace("{$data}",OracleConstants.QUOTE+feed_name+"_monthlyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 													+OracleConstants.QUOTE+feed_name+"_monthlyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 													+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
 													+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
 													+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+													+OracleConstants.QUOTE+gcp_name+OracleConstants.QUOTE+OracleConstants.COMMA
+													+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+													+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
 													+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
 													+OracleConstants.QUOTE+date+OracleConstants.QUOTE+OracleConstants.COMMA
 													+OracleConstants.QUOTE+hour+":"+minute+":00"+OracleConstants.QUOTE
@@ -644,12 +651,15 @@ public static String insertScheduleMetadata(Connection conn,String feed_name,Str
 							}
 							else {
 								insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
-										.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,daily_flag,job_schedule_time,project_id")
+										.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,daily_flag,job_schedule_time,project_id")
 										.replace("{$data}",OracleConstants.QUOTE+feed_name+"_monthlyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+feed_name+"_monthlyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+gcp_name+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+date+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+hour+":"+minutes+":00"+OracleConstants.QUOTE
@@ -666,12 +676,15 @@ public static String insertScheduleMetadata(Connection conn,String feed_name,Str
 						if(minutes.contains(",")) {
 							for(String minute:minutes.split(",")) {
 								insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
-										.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,daily_flag,job_schedule_time,project_id")
+										.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,daily_flag,job_schedule_time,project_id")
 										.replace("{$data}",OracleConstants.QUOTE+feed_name+"_monthlyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+feed_name+"_monthlyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+gcp_name+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+date+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+hours+":"+minute+":00"+OracleConstants.QUOTE
@@ -682,12 +695,15 @@ public static String insertScheduleMetadata(Connection conn,String feed_name,Str
 
 						} 			else {
 							insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
-									.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,daily_flag,job_schedule_time,project_id")
+									.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,daily_flag,job_schedule_time,project_id")
 									.replace("{$data}",OracleConstants.QUOTE+feed_name+"_monthlyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+feed_name+"_monthlyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+gcp_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+date+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+hours+":"+minutes+":00"+OracleConstants.QUOTE
@@ -704,12 +720,15 @@ public static String insertScheduleMetadata(Connection conn,String feed_name,Str
 						if(minutes.contains(",")) {
 							for(String minute:minutes.split(",")) {
 								insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
-										.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,daily_flag,job_schedule_time,project_id")
+										.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,daily_flag,job_schedule_time,project_id")
 										.replace("{$data}",OracleConstants.QUOTE+feed_name+"_monthlyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+feed_name+"_monthlyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+feed_name+OracleConstants.COMMA
+												+OracleConstants.QUOTE+gcp_name+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+dates+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+hour+":"+minute+":00"+OracleConstants.QUOTE
@@ -721,12 +740,15 @@ public static String insertScheduleMetadata(Connection conn,String feed_name,Str
 						}
 						else {
 							insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
-									.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,daily_flag,job_schedule_time,project_id")
+									.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,daily_flag,job_schedule_time,project_id")
 									.replace("{$data}",OracleConstants.QUOTE+feed_name+"_monthlyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+feed_name+"_monthlyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+gcp_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+dates+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+hour+":"+minutes+":00"+OracleConstants.QUOTE
@@ -743,12 +765,15 @@ public static String insertScheduleMetadata(Connection conn,String feed_name,Str
 					if(minutes.contains(",")) {
 						for(String minute:minutes.split(",")) {
 							insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
-									.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,daily_flag,job_schedule_time,project_id")
+									.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,daily_flag,job_schedule_time,project_id")
 									.replace("{$data}",OracleConstants.QUOTE+feed_name+"_monthlyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+feed_name+"_monthlyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+gcp_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+dates+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+hours+":"+minute+":00"+OracleConstants.QUOTE
@@ -759,12 +784,15 @@ public static String insertScheduleMetadata(Connection conn,String feed_name,Str
 
 					}else {
 						insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
-								.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,daily_flag,job_schedule_time,project_id")
+								.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,daily_flag,job_schedule_time,project_id")
 								.replace("{$data}",OracleConstants.QUOTE+feed_name+"_monthlyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+feed_name+"_monthlyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+gcp_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+dates+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+hours+":"+minutes+":00"+OracleConstants.QUOTE
@@ -782,12 +810,15 @@ public static String insertScheduleMetadata(Connection conn,String feed_name,Str
 							if(minutes.contains(",")) {
 								for(String minute:minutes.split(",")) {
 									insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
-											.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,daily_flag,job_schedule_time,project_id")
+											.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,daily_flag,job_schedule_time,project_id")
 											.replace("{$data}",OracleConstants.QUOTE+feed_name+"_weeklyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 													+OracleConstants.QUOTE+feed_name+"_weeklyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 													+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
 													+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
 													+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+													+OracleConstants.QUOTE+gcp_name+OracleConstants.QUOTE+OracleConstants.COMMA
+													+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+													+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
 													+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
 													+OracleConstants.QUOTE+day+OracleConstants.QUOTE+OracleConstants.COMMA
 													+OracleConstants.QUOTE+hour+":"+minute+":00"+OracleConstants.QUOTE
@@ -796,12 +827,15 @@ public static String insertScheduleMetadata(Connection conn,String feed_name,Str
 								}
 							}else {
 								insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
-										.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,daily_flag,job_schedule_time,project_id")
+										.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,daily_flag,job_schedule_time,project_id")
 										.replace("{$data}",OracleConstants.QUOTE+feed_name+"_weekPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+feed_name+"_weeklyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+gcp_name+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+day+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+hour+":"+minutes+":00"+OracleConstants.QUOTE
@@ -814,12 +848,15 @@ public static String insertScheduleMetadata(Connection conn,String feed_name,Str
 						if(minutes.contains(",")) {
 							for(String minute:minutes.split(",")) {
 								insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
-										.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,daily_flag,job_schedule_time,project_id")
+										.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,daily_flag,job_schedule_time,project_id")
 										.replace("{$data}",OracleConstants.QUOTE+feed_name+"_weeklyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+feed_name+"_weeklyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+gcp_name+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+day+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+hours+":"+minute+":00"+OracleConstants.QUOTE
@@ -828,12 +865,15 @@ public static String insertScheduleMetadata(Connection conn,String feed_name,Str
 							}
 						}else {
 							insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
-									.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,daily_flag,job_schedule_time,project_id")
+									.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,daily_flag,job_schedule_time,project_id")
 									.replace("{$data}",OracleConstants.QUOTE+feed_name+"_weeklyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+feed_name+"_weeklyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+gcp_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+day+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+hours+":"+minutes+":00"+OracleConstants.QUOTE
@@ -848,12 +888,15 @@ public static String insertScheduleMetadata(Connection conn,String feed_name,Str
 						if(minutes.contains(",")) {
 							for(String minute:minutes.split(",")) {
 								insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
-										.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,daily_flag,job_schedule_time,project_id")
+										.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,daily_flag,job_schedule_time,project_id")
 										.replace("{$data}",OracleConstants.QUOTE+feed_name+"_weeklyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+feed_name+"_weeklyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+gcp_name+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+daysOfWeek+OracleConstants.QUOTE+OracleConstants.COMMA
 												+OracleConstants.QUOTE+hour+":"+minute+":00"+OracleConstants.QUOTE
@@ -862,12 +905,15 @@ public static String insertScheduleMetadata(Connection conn,String feed_name,Str
 							}
 						}else {
 							insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
-									.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,daily_flag,job_schedule_time,project_id")
+									.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,daily_flag,job_schedule_time,project_id")
 									.replace("{$data}",OracleConstants.QUOTE+feed_name+"_weeklyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+feed_name+"_weeklyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+gcp_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+daysOfWeek+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+hour+":"+minutes+":00"+OracleConstants.QUOTE
@@ -880,12 +926,15 @@ public static String insertScheduleMetadata(Connection conn,String feed_name,Str
 					if(minutes.contains(",")) {
 						for(String minute:minutes.split(",")) {
 							insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
-									.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,daily_flag,job_schedule_time,project_id")
+									.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,daily_flag,job_schedule_time,project_id")
 									.replace("{$data}",OracleConstants.QUOTE+feed_name+"_weeklyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+feed_name+"_weeklyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+gcp_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+daysOfWeek+OracleConstants.QUOTE+OracleConstants.COMMA
 											+OracleConstants.QUOTE+hours+":"+minute+":00"+OracleConstants.QUOTE
@@ -894,12 +943,15 @@ public static String insertScheduleMetadata(Connection conn,String feed_name,Str
 						}
 					}else {
 						insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
-								.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,daily_flag,job_schedule_time,project_id")
+								.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,daily_flag,job_schedule_time,project_id")
 								.replace("{$data}",OracleConstants.QUOTE+feed_name+"_weeklyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+feed_name+"_weeklyPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+gcp_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+daysOfWeek+OracleConstants.QUOTE+OracleConstants.COMMA
 										+OracleConstants.QUOTE+hours+":"+minutes+":00"+OracleConstants.QUOTE
@@ -916,6 +968,46 @@ public static String insertScheduleMetadata(Connection conn,String feed_name,Str
 	}
 	return "success";
 }
+
+public static String insertOnDemandScheduleMetadata(Connection conn,String feed_name, String feed_id, String gcp_details, String project, String run_id) throws SQLException {
+	Statement statement=conn.createStatement();
+	String insertQuery="";
+	int project_sequence=0;
+	project_sequence=getProjectSequence(conn, project);
+	
+	try {
+
+	insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
+			.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,argument_5,daily_flag,job_schedule_time,project_id,feed_id,SCHEDULE_TYPE")
+			.replace("{$data}",OracleConstants.QUOTE+feed_name+"_OneTimePublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+					+OracleConstants.QUOTE+feed_name+"_OneTimePublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+					+OracleConstants.QUOTE+feed_name+"_OneTimePublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+					+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
+					+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+					+OracleConstants.QUOTE+gcp_details +OracleConstants.QUOTE+OracleConstants.COMMA
+					//+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+					+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
+					+OracleConstants.QUOTE+run_id+OracleConstants.QUOTE+OracleConstants.COMMA
+					+OracleConstants.QUOTE+"O"+OracleConstants.QUOTE+OracleConstants.COMMA
+					+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
+					+OracleConstants.QUOTE+"00:00:00"+OracleConstants.QUOTE
+					+OracleConstants.COMMA+project_sequence+OracleConstants.COMMA
+					+OracleConstants.QUOTE+feed_id+OracleConstants.QUOTE+OracleConstants.COMMA
+			+OracleConstants.QUOTE+"O"+OracleConstants.QUOTE);
+	
+	
+	System.out.println(insertQuery);
+	statement.execute(insertQuery);
+	}
+	catch(SQLException e) {
+		throw e;
+	}finally {
+		conn.close();
+	}
+	
+	return "success";
+}
+
 
 public static void insertScheduleMetadataWithDependent(Connection conn,String extractFeedSequence,String pubFeedSequence, String feedUniqueName,String gcpName,String saNAme, String projectId)throws Exception{
 	
@@ -992,3 +1084,4 @@ private static ScheduleJobDetails getExtractionJobDetails(Connection conn, Strin
 }
 
 }
+		

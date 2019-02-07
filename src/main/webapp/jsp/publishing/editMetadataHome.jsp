@@ -80,7 +80,7 @@ function updateDataType1()
 		    <a class="nav-link" id="pills-field" data-toggle="pill" href="#pills-field-conn" role="tab" aria-controls="pills-field" aria-selected="false">Field Details</a>
 		  </li> -->
 		   <li class="nav-item">
-		    <a class="nav-link" id="pills-mstr-dt" data-toggle="pill" href="#pills-mstr-dt-conn" role="tab" aria-controls="pills-mstr-dt" aria-selected="false">Data Type Mapping - Source to Target </a>
+		    <a class="nav-link active" id="pills-mstr-dt" data-toggle="pill" href="#pills-mstr-dt-conn" role="tab" aria-controls="pills-mstr-dt" aria-selected="false">Data Type Mapping - Source to Target </a>
 		  </li>
 	</ul>
 <div class="tab-content" id="pills-tabContent">

@@ -32,7 +32,7 @@ public class CSVReader {
 	
 	public final String delimiter=",";
 	public  int readSystem( String userName, String tgt_type, String tgt_dataset,  boolean extracted_Source, String service_account_name, String google_proj_name, String ext_feed_id,String pub_feed_name, int project_sequence)
-			throws FileNotFoundException, IOException, SQLException, ClassNotFoundException {
+			throws Exception {
 
 		System.out.println("Inside read System----");
 		ArrayList<SystemBean> systemBeans = new ArrayList<SystemBean>();
@@ -96,9 +96,9 @@ public class CSVReader {
 		Connection conn =  connectionUtils.getConnection();
 		System.out.println("Getting conn----" + conn);
 
-		int pub_feed_id=1;
+		//int pub_feed_id=1;
 		// change code 15-01-2019
-		//int pub_feed_id = DBUtils.insertSystemTargetValue(conn, systemBeans, extracted_Source,tgt_type,tgt_dataset,service_account_name,google_proj_name,ext_feed_id,pub_feed_name , project_sequence, userName);
+		int pub_feed_id = DBUtils.insertSystemTargetValue(conn, systemBeans, extracted_Source,tgt_type,tgt_dataset,service_account_name,google_proj_name,ext_feed_id,pub_feed_name , project_sequence, userName);
 		
 		// ConnectionUtils.closeQuietly(conn);
 		conn.close();
@@ -108,7 +108,7 @@ public class CSVReader {
 	}
 	
 	public  void readFile( String userName, String service_account_name,  int pub_feed_id , int project_sequence, String ext_feed_id)
-			throws ClassNotFoundException, SQLException, IOException {
+			throws Exception {
 		System.out.println("Inside read File----");
 		/*ArrayList<FileBean> fileBeans = new ArrayList<FileBean>();
 		int lineNumber = 0;
@@ -166,7 +166,7 @@ public class CSVReader {
 
 	}
 	public void readField( String userName, boolean extracted_Source,String service_account_name, int pub_feed_id, String ext_feed_id)
-			throws ClassNotFoundException, SQLException, IOException {
+			throws Exception {
 		//ArrayList<FieldBean> fieldBeans = getFieldDetails (blobId,userName,service_account_name);
 		Map<String,String> datatypeMapiing = new HashMap<String,String>();
 		//Connection conn = ConnectionUtils.connectToMySql(mysql_ip, mysql_port, db_name, user, password);

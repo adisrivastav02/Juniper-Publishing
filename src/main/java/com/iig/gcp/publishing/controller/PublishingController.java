@@ -11,7 +11,14 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -24,6 +31,7 @@ import org.springframework.web.servlet.ModelAndView;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.iig.gcp.CustomAuthenticationProvider;
 import com.iig.gcp.publishing.service.DataTypeLinkBean;
 import com.iig.gcp.publishing.service.PublishingService;
 import com.iig.gcp.publishing.service.ReconDashboardBean;
@@ -34,15 +42,63 @@ import com.iig.gcp.publishing.service.SourceSystemFileBean;
 
 
 @Controller
+@SessionAttributes(value = { "user_name",  "project" , "jwt"})
 public class PublishingController {
 
 	@Autowired
 	private PublishingService ps;
 	
-	@RequestMapping(value="/publishing/addMetaDataHome",method=RequestMethod.GET)
-	public ModelAndView publishingMetadataHome() {
-		return new ModelAndView("/publishing/addMetaDataHome");
+	@Autowired
+    private AuthenticationManager authenticationManager;
+	
+	@Value( "${parent.front.micro.services}" )
+	private String parent_micro_services;
+	
+	@RequestMapping(value = {"/parent"}, method = RequestMethod.GET)
+	public ModelAndView parentHome(ModelMap modelMap,HttpServletRequest request, Authentication auth) throws JSONException {
+		CustomAuthenticationProvider.MyUser m = (CustomAuthenticationProvider.MyUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+		JSONObject jsonObject= new JSONObject();
+		jsonObject.put("userId", m.getName());
+		jsonObject.put("project", m.getProject());
+		jsonObject.put("jwt", m.getJwt());
+		//response.getWriter().write(jsonObject.toString());
+		modelMap.addAttribute("jsonObject",jsonObject.toString());
+		return new ModelAndView("redirect:" + "//"+parent_micro_services+"/fromChild", modelMap);
+		//System.out.println(m.getJwt());
+		//return null;
+		
 	}
+	private void authenticationByJWT(String name, String token) {
+		UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(name, token);
+        Authentication authenticate = authenticationManager.authenticate(authToken);
+        SecurityContextHolder.getContext().setAuthentication(authenticate);
+	}
+	
+	@RequestMapping(value = { "/", "/login"}, method = RequestMethod.GET)
+	public ModelAndView unixExtractionHome(@Valid @ModelAttribute("jsonObject") String jsonObject,ModelMap modelMap,HttpServletRequest request) throws JSONException {
+		
+		//Validate the token at the first place
+		JSONObject jsonModelObject = null;
+		try {
+		
+		if(modelMap.get("jsonObject")== null || modelMap.get("jsonObject").equals("")) {
+			//TODO: Redirect to Access Denied Page
+			return new ModelAndView("/login");
+		}
+		jsonModelObject = new JSONObject( modelMap.get("jsonObject").toString());
+		authenticationByJWT(jsonModelObject.get("userId").toString()+":"+jsonModelObject.get("project").toString(), jsonModelObject.get("jwt").toString());
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+			return new ModelAndView("/login");
+			//redirect to Login Page
+		}
+		request.getSession().setAttribute("user_name", jsonModelObject.get("userId"));
+		request.getSession().setAttribute("project", jsonModelObject.get("project"));
+		
+		return new ModelAndView("/index");
+	}
+	
 	
 	@RequestMapping(value="/publishing/publishingHome",method=RequestMethod.GET)
 	public ModelAndView publishingHome() {
@@ -51,12 +107,18 @@ public class PublishingController {
 	
 	@RequestMapping(value="/publishing/resetMetadataHome",method=RequestMethod.GET)
 	public ModelAndView resetMetadataHome(@Valid ModelMap model,HttpServletRequest request) {
-		ArrayList<String> allDatabases= ps.populateDatasets((String)request.getSession().getAttribute("project"));
-		model.addAttribute("allDatabases", allDatabases);
+		ArrayList<String> allDatabases;
+		try {
+			allDatabases = ps.populateDatasets((String)request.getSession().getAttribute("project"));
+			model.addAttribute("allDatabases", allDatabases);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		return new ModelAndView("/publishing/resetMetadataHome");
 	}
 	
-	@RequestMapping(value="/publishing/viewMetadataHome",method=RequestMethod.GET)
+/*	@RequestMapping(value="/publishing/viewMetadataHome",method=RequestMethod.GET)
 		public ModelAndView viewMetadataHome(@Valid ModelMap model) {
 		Map<String,String> viewSSID = ps.getMDSysList();
 		//get Source DB list
@@ -68,35 +130,55 @@ public class PublishingController {
 		return new ModelAndView("/publishing/viewMetadataHome");
 	}
 	
+	*/
 	@RequestMapping(value="/publishing/editMetadataHome",method=RequestMethod.GET)
 	public ModelAndView editMetadataHome(@Valid ModelMap model) {
-		ArrayList<String> srcDBList= ps.populateSrcDBList();
-		ArrayList<String> tgtDBList= ps.populateTgtDBList();
-		Map<String,String> editSSID = ps.getMDSysList();
-		model.addAttribute("editSSID", editSSID);
+		ArrayList<String> srcDBList;
+		try {
+			srcDBList = ps.populateSrcDBList();
+			ArrayList<String> tgtDBList= ps.populateTgtDBList();
+		//Map<String,String> editSSID = ps.getMDSysList();
+		//model.addAttribute("editSSID", editSSID);
 		model.addAttribute("srcDBList", srcDBList);
 		model.addAttribute("tgtDBList", tgtDBList);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		return new ModelAndView("/publishing/editMetadataHome");
 	}
 	
 	@RequestMapping(value="/publishing/reconDashboard",method=RequestMethod.GET)
 	public ModelAndView reconDashboard(@Valid ModelMap model,HttpServletRequest request) {
-		Map<String,String> srcSysId = ps.getPubFeedIDs((String)request.getSession().getAttribute("project"));
-		model.addAttribute("srcSysId", srcSysId);
+		Map<String, String> srcSysId;
+		try {
+			srcSysId = ps.getPubFeedIDs((String)request.getSession().getAttribute("project"));
+			model.addAttribute("srcSysId", srcSysId);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 	return new ModelAndView("/publishing/reconDashboard");
 	}
 		
-	@RequestMapping(value="/publishing/publishingAddMetaData",method=RequestMethod.POST)
+	@RequestMapping(value="/publishing/publishingAddMetaData",method=RequestMethod.GET)
 	public ModelAndView publishingAddMetadataHome(@Valid @ModelAttribute("tgt_val")String tgt_val, ModelMap model,HttpServletRequest request) {
-		ArrayList<String> allDatabases= ps.populateDatasets((String)request.getSession().getAttribute("project"));
-		ArrayList<String> googleProjectList= ps.populateGoogleProject((String)request.getSession().getAttribute("project"));
-		Map<String,String> srcSysIds = ps.getSysIds((String)request.getSession().getAttribute("project"));
-		Map<String,String> feedID = ps.getPubFeedIDs((String)request.getSession().getAttribute("project"));
-		model.addAttribute("allDatabases", allDatabases);
-		model.addAttribute("googleProjectList", googleProjectList);
-		model.addAttribute("feedID", feedID);
-		model.addAttribute("tgt_val", tgt_val);
-		model.addAttribute("srcSysIds", srcSysIds);
+		ArrayList<String> allDatabases;
+		try {
+			allDatabases = ps.populateDatasets((String)request.getSession().getAttribute("project"));
+			ArrayList<String> googleProjectList= ps.populateGoogleProject((String)request.getSession().getAttribute("project"));
+			Map<String,String> srcSysIds = ps.getSysIds((String)request.getSession().getAttribute("project"));
+			Map<String,String> feedID = ps.getPubFeedIDs((String)request.getSession().getAttribute("project"));
+			model.addAttribute("allDatabases", allDatabases);
+			model.addAttribute("googleProjectList", googleProjectList);
+			model.addAttribute("feedID", feedID);
+			model.addAttribute("tgt_val", "BigQuery");
+			model.addAttribute("srcSysIds", srcSysIds);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		return new ModelAndView("/publishing/publishingAddMetaData");
 	}
 
@@ -104,16 +186,28 @@ public class PublishingController {
 	@RequestMapping(value="/publishing/serviceAccountList",method=RequestMethod.POST)
 	public ModelAndView serviceAccountList(@Valid @ModelAttribute("gcp_proj_id")String gcp_proj_id, ModelMap model,HttpServletRequest request) {
 		System.out.println("inside  sa list"+(String)request.getSession().getAttribute("project"));
-		ArrayList<String> sa_list= ps.populateServiceAccList(gcp_proj_id,(String)request.getSession().getAttribute("project"));
-		model.addAttribute("sa_list", sa_list);
+		ArrayList<String> sa_list;
+		try {
+			sa_list = ps.populateServiceAccList(gcp_proj_id,(String)request.getSession().getAttribute("project"));
+			model.addAttribute("sa_list", sa_list);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		return new ModelAndView("/publishing/publishingServiceAccountList");
 	}
 	
 	@RequestMapping(value="/publishing/publishingScheduler",method=RequestMethod.POST)
 	public ModelAndView publishingScheduler(@Valid @ModelAttribute("pub_tgt_val")String pub_tgt_val, ModelMap model) {
-		Map<String,String> exSrcSysId = ps.getExSysIds();
-		model.addAttribute("exSrcSysId", exSrcSysId);
-		model.addAttribute("pub_tgt_val", pub_tgt_val);
+		Map<String, String> exSrcSysId;
+		try {
+			exSrcSysId = ps.getExSysIds();
+			model.addAttribute("exSrcSysId", exSrcSysId);
+			model.addAttribute("pub_tgt_val", pub_tgt_val);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		return new ModelAndView("/publishing/publishingScheduler");
 	}
 	
@@ -399,7 +493,7 @@ public class PublishingController {
 	}
 	
 	
-	/* Add Metadata controller for extracted system*/
+	/* Add Metadata controller for extracted system
 	@RequestMapping(value="/publishing/finalAddMetadata",method=RequestMethod.POST)
 	public ModelAndView finalAddMetadata(@Valid @ModelAttribute("z")String z, ModelMap model) throws UnsupportedOperationException, Exception {
 		    System.out.println("inside final add "+z);
@@ -423,7 +517,7 @@ public class PublishingController {
 		    	model.addAttribute("successString", final_message);
 		    }
 	return new ModelAndView("/publishing/addMetaDataHome");
-	}
+	}*/
 	
 	/* Publish Metadata controller for existing system*/
 	@RequestMapping(value="/publishing/publishingExtracted1",method=RequestMethod.POST)
@@ -443,7 +537,7 @@ public class PublishingController {
 				String feed_unique_name = requestDto.getBody().get("data").get("feed_unique_name");
 				String src_sys_id = requestDto.getBody().get("data").get("src_sys_id");
 				String feed_name = feed_unique_name + "_" + src_sys_id.split(":")[2] + "_" + src_sys_id.split(":")[3];
-				ps.insertScheduleMetadata(feed_name, (String)request.getSession().getAttribute("project"), sch_freq);
+				ps.insertScheduleMetadata(feed_unique_name,src_sys_id.split(":")[2], src_sys_id.split(":")[3], (String)request.getSession().getAttribute("project"), sch_freq);
 				resp = "{ 'status': 'Success','message':'PUBLISHING JOB SCHEDULED SUCCESSFULLY' }";
 			} else if (sch_type.equalsIgnoreCase("Event_Based")) {
 				String extractFeedSequence = requestDto.getBody().get("data").get("src_sys_id").split(":")[4];
@@ -455,7 +549,16 @@ public class PublishingController {
 				ps.insertScheduleMetadataWithDependent(extractFeedSequence,pubFeedSequence, feedUniqueName, gcpName,saNAme,projectId);
 				resp = "{ 'status': 'Success','message':'PUBLISHING JOB SCHEDULED SUCCESSFULLY' }";
 			} else {
-				resp = ps.invokePythonRest(x, "publish/publishData");
+				
+				String sch_freq = requestDto.getBody().get("data").get("sch_freq");
+				String feed_unique_name = requestDto.getBody().get("data").get("feed_unique_name");
+				String src_sys_id = requestDto.getBody().get("data").get("src_sys_id");
+				String feed_name = feed_unique_name + "_" + src_sys_id.split(":")[2] + "_" + src_sys_id.split(":")[3];
+				String pub_feed_id =  src_sys_id.split(":")[0] ;
+				String saName= requestDto.getBody().get("data").get("sa_name");
+				String run_id = requestDto.getBody().get("data").get("run_id");
+				ps.insertOnDemandScheduleMetadata(feed_unique_name,pub_feed_id,src_sys_id.split(":")[2]+":" +src_sys_id.split(":")[3]+":"+ saName, (String)request.getSession().getAttribute("project"), run_id);
+				resp = "{ 'status': 'Success','message':'PUBLISHING JOB SCHEDULED SUCCESSFULLY' }";
 			}
 			//resp = ps.invokePythonRest(x, "publish/publishData");
 		}else {
@@ -485,7 +588,7 @@ public class PublishingController {
 				 String final_message="FAILED"+": "+ e.getMessage();
 				 model.addAttribute("errorString", final_message);
 			}
-		return new ModelAndView("/publishing/addMetaDataHome");
+		return new ModelAndView("/publishing/publishingAddMetaData");
 	}
 	
 	
@@ -493,8 +596,13 @@ public class PublishingController {
 	public ModelAndView publishingRunIds(@Valid @ModelAttribute("src_sys_id")String src_sys_id, ModelMap model) throws IOException, ClassNotFoundException, SQLException {
 		ArrayList<String> runIdList;
 		Integer src_id=Integer.parseInt(src_sys_id);
-		runIdList=ps.getRunIds(src_id); 
-		model.addAttribute("runIdList", runIdList);
+		try {
+			runIdList=ps.getRunIds(src_id);
+			model.addAttribute("runIdList", runIdList);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
 		return new ModelAndView("/publishing/publishingSch0");
 	}
 	
@@ -504,9 +612,14 @@ public class PublishingController {
 		Map<String, String> runIdList;
 		System.out.println("inside new run id list");
 		Integer src_id=Integer.parseInt(src_sys_id.split(":")[0]);
-		runIdList=ps.getRunIdsWithDate(src_id, dateRangeText,is_new,pub_feed_id); 
-		model.addAttribute("runIdList", runIdList);
-		model.addAttribute("feed_id",src_sys_id);
+		try {
+			runIdList=ps.getRunIdsWithDate(src_id, dateRangeText,is_new,pub_feed_id);
+			model.addAttribute("runIdList", runIdList);
+			model.addAttribute("feed_id",src_sys_id);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
 		return new ModelAndView("/publishing/publishingSch1");
 	}
 	
@@ -515,10 +628,15 @@ public class PublishingController {
 		System.out.println("inside ex pun details bean"+" "+src_sys_id+" "+target_dataset+" "+is_new+" "+dateRangeText);
 		Map<String, String> runIdList;
 		Integer src_id=Integer.parseInt(src_sys_id.split(":")[0]);
-		runIdList=ps.getRunIdsWithDate(src_id, dateRangeText,is_new,target_dataset); 
-		//ExistingPubBean bean= new ExistingPubBean();
-		model.addAttribute("runIdList", runIdList);
-		model.addAttribute("feed_id",src_sys_id);
+		try {
+			runIdList=ps.getRunIdsWithDate(src_id, dateRangeText,is_new,target_dataset);
+			//ExistingPubBean bean= new ExistingPubBean();
+			model.addAttribute("runIdList", runIdList);
+			model.addAttribute("feed_id",src_sys_id);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
 		return new ModelAndView("/publishing/publishingSch1");
 		
 		
@@ -532,7 +650,7 @@ public class PublishingController {
 		return new ModelAndView("/publishing/publishingSch2");*/
 	}
 	
-	@RequestMapping(value="/publishing/viewMDSysList",method=RequestMethod.POST)
+	/*@RequestMapping(value="/publishing/viewMDSysList",method=RequestMethod.POST)
 	public ModelAndView viewMDSysList(@Valid @ModelAttribute("src_sys_id")String src_sys_id, ModelMap model) throws IOException, ClassNotFoundException, SQLException {
 		Integer src_id=Integer.parseInt(src_sys_id);
 		SourceSystemBean system = new SourceSystemBean();
@@ -588,10 +706,10 @@ public class PublishingController {
 		system=ps.getSourceSystemMetadata(src_id);
 		model.addAttribute("systemBean", system);
 		return new ModelAndView("/publishing/editSysMetadata0");
-	}
+	}*/
 	
 	//Rest API call for System Edit
-	@RequestMapping(value="/publishing/updateSysMD",method=RequestMethod.POST)
+	/*@RequestMapping(value="/publishing/updateSysMD",method=RequestMethod.POST)
 	public ModelAndView updateSysMD(@Valid @ModelAttribute("x")String x, ModelMap model) throws UnsupportedOperationException, Exception {
 		   	//String resp = ps.invokeRest(x,"publish/editSysMD");
 		Thread.sleep(5000);
@@ -722,21 +840,31 @@ public class PublishingController {
 		model.addAttribute("srcDBList", srcDBList);
 		model.addAttribute("tgtDBList", tgtDBList);
 		return new ModelAndView("/publishing/editMetadataHome");
-	}
+	}*/
 	//View Source & Target DataType Details
 	@RequestMapping(value="/publishing/viewDataTypeLinkDetails",method=RequestMethod.POST)
 	public ModelAndView viewDataTypeLinkDetails(@Valid @ModelAttribute("src_db")String src_db,@ModelAttribute("tgt_db")String tgt_db, ModelMap model) throws IOException, ClassNotFoundException, SQLException {
 			List<DataTypeLinkBean> dataTypeInfo = new ArrayList<DataTypeLinkBean>();
-			dataTypeInfo=ps.getDataTypeLinkList(src_db, tgt_db);
-			model.addAttribute("dataTypeInfo", dataTypeInfo);
+			try {
+				dataTypeInfo=ps.getDataTypeLinkList(src_db, tgt_db);
+				model.addAttribute("dataTypeInfo", dataTypeInfo);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			return new ModelAndView("/publishing/viewDataTypeLink");
 	}
 	//View Source & Target DataType Details
 	@RequestMapping(value="/publishing/editDataTypeLinkDetails",method=RequestMethod.POST)
 	public ModelAndView editDataTypeLinkDetails(@Valid @ModelAttribute("src_db")String src_db,@ModelAttribute("tgt_db")String tgt_db, ModelMap model) throws IOException, ClassNotFoundException, SQLException {
 			List<DataTypeLinkBean> dataTypeInfo = new ArrayList<DataTypeLinkBean>();
-			dataTypeInfo=ps.getDataTypeLinkList(src_db, tgt_db);
-			model.addAttribute("dataTypeInfo", dataTypeInfo);
+			try {
+				dataTypeInfo=ps.getDataTypeLinkList(src_db, tgt_db);
+				model.addAttribute("dataTypeInfo", dataTypeInfo);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			return new ModelAndView("/publishing/editDataTypeLink");
 	}
 	//Rest API call for Update Datatype
@@ -770,8 +898,8 @@ public class PublishingController {
 		    }
 		    ArrayList<String> srcDBList= ps.populateSrcDBList();
 			ArrayList<String> tgtDBList= ps.populateTgtDBList();
-			Map<String,String> editSSID = ps.getMDSysList();
-			model.addAttribute("editSSID", editSSID);
+			//Map<String,String> editSSID = ps.getMDSysList();
+			//model.addAttribute("editSSID", editSSID);
 			model.addAttribute("srcDBList", srcDBList);
 			model.addAttribute("tgtDBList", tgtDBList);
 			return new ModelAndView("/publishing/editMetadataHome");
@@ -839,17 +967,29 @@ public class PublishingController {
 		@RequestMapping(value="/publishing/reconRunIds",method=RequestMethod.POST)
 		public ModelAndView reconRunIds(@Valid @ModelAttribute("src_sys_id")String src_sys_id, ModelMap model) throws IOException, ClassNotFoundException, SQLException {
 			Integer src_id=Integer.parseInt(src_sys_id);
-			ArrayList<String> runIDList= ps.reconRunIDs(src_id);
-			model.addAttribute("runIDList", runIDList);
-			model.addAttribute("src_sys_id", src_sys_id);
+			ArrayList<String> runIDList;
+			try {
+				runIDList = ps.reconRunIDs(src_id);
+				model.addAttribute("runIDList", runIDList);
+				model.addAttribute("src_sys_id", src_sys_id);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			return new ModelAndView("/publishing/reconDashboard0");
 		} 
 		//Recon Dashboard values
 		@RequestMapping(value="/publishing/reconDashboardValues",method=RequestMethod.POST)
 		public ModelAndView reconDashboardValues(@Valid @ModelAttribute("src_sys_id")String src_sys_id,@Valid @ModelAttribute("recon_run_id")String recon_run_id, ModelMap model) throws IOException, ClassNotFoundException, SQLException {
 			Integer src_id=Integer.parseInt(src_sys_id);
-			ArrayList<ReconDashboardBean> reconDataList= ps.reconDashData(src_id,recon_run_id);
-			model.addAttribute("reconDataList",reconDataList);
+			ArrayList<ReconDashboardBean> reconDataList;
+			try {
+				reconDataList = ps.reconDashData(src_id,recon_run_id);
+				model.addAttribute("reconDataList",reconDataList);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			return new ModelAndView("/publishing/reconDashboard1");
 		}
 		
@@ -859,4 +999,11 @@ public class PublishingController {
 			model.addAttribute("stat", stat);
 			return new ModelAndView("/publishing/searchTextBox");
 		}
+		
+		@RequestMapping(value = { "/publishing/error"}, method = RequestMethod.GET)
+		public ModelAndView error(ModelMap modelMap,HttpServletRequest request) {
+			
+			return new ModelAndView("/index");
+		}
 }
+

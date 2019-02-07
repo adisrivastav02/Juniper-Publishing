@@ -23,7 +23,6 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
@@ -86,12 +85,11 @@ public class PublishingServiceImpl implements PublishingService {
 		return resp;
 	}
 
-	public Map<String, String> getSysIds(String project) {
+	public Map<String, String> getSysIds(String project) throws Exception {
 		Connection conn = null;
 		try {
 			Map<String, String> src_map = new HashMap<String, String>();
 			conn = connectionUtils.getConnection();
-			System.out.println("inside src sys: " + project);
 			// String s_id="SELECT DISTINCT FEED_ID,FEED_UNIQUE_NAME FROM
 			// JUNIPER_EXT_NIFI_STATUS s,JUNIPER_PROJECT_MASTER p WHERE
 			// p.PROJECT_SEQUENCE=s.PROJECT_SEQUENCE AND UPPER(s.STATUS) = 'SUCCESS' AND
@@ -117,22 +115,23 @@ public class PublishingServiceImpl implements PublishingService {
 					" p.project_id= '" + project+ "'" +
 					"    AND upper(tm.target_type) = 'GCS'";*/
 
-			System.out.println(s_id);
 			Statement statement = conn.createStatement();
 			ResultSet rs = statement.executeQuery(s_id);
 			while (rs.next()) {
 				src_map.put(rs.getString(1), rs.getString(2));
 			}
 			// ConnectionUtils.closeQuietly(conn);
-			conn.close();
+			
 			return src_map;
 		} catch (Exception e) {
-			// conn.close();
-			return null;
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
 		}
 	}
 
-	public Map<String, String> getExSysIds() {
+	public Map<String, String> getExSysIds() throws Exception {
 		Connection conn = null;
 		try {
 			Map<String, String> src_map = new HashMap<String, String>();
@@ -146,16 +145,17 @@ public class PublishingServiceImpl implements PublishingService {
 			while (rs.next()) {
 				src_map.put(rs.getString(1) + ":" + rs.getString(3) + ":" + rs.getString(2), rs.getString(2));
 			}
-			// connectionUtils.closeQuietly(conn);
-			conn.close();
+			
 			return src_map;
 		} catch (Exception e) {
-			// conn.close();
-			return null;
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
 		}
 	}
 
-	public Map<String, String> getMDSysList() {
+	/*public Map<String, String> getMDSysList() throws Exception {
 		Connection conn = null;
 		try {
 			Map<String, String> src_map = new HashMap<String, String>();
@@ -167,15 +167,16 @@ public class PublishingServiceImpl implements PublishingService {
 				src_map.put(rs.getString(1), rs.getString(2));
 			}
 			// connectionUtils.closeQuietly(conn);
-			conn.close();
 			return src_map;
 		} catch (Exception e) {
-			// conn.close();
-			return null;
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
 		}
 	}
-
-	public ArrayList<String> getRunIds(Integer src_id) {
+*/
+	public ArrayList<String> getRunIds(Integer src_id) throws Exception {
 		// TODO Auto-generated method stub
 		Connection conn = null;
 		ArrayList<String> run_list = new ArrayList<String>();
@@ -189,20 +190,20 @@ public class PublishingServiceImpl implements PublishingService {
 				run_list.add(rs.getString(1));
 			}
 			// connectionUtils.closeQuietly(conn);
-			conn.close();
 			return run_list;
 		} catch (Exception e) {
-			// conn.close();
-			return run_list;
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
 		}
 	}
 
 	@Override
 	public Map<String, String> getRunIdsWithDate(Integer src_id, String dateRangeText, String is_new,
-			String pub_feed_id) {
+			String pub_feed_id) throws Exception {
 		// TODO Auto-generated method stub
 		Connection conn = null;
-		System.out.println("inside run id: " + src_id + " date " + is_new + pub_feed_id);
 		Map<String, String> run_list = new TreeMap<String, String>();
 		try {
 			conn = connectionUtils.getConnection();
@@ -220,24 +221,22 @@ public class PublishingServiceImpl implements PublishingService {
 						String last_date = dates[1].trim();
 						start_date = tf.format(sf.parse(first_date));
 						end_date = tf.format(sf.parse(last_date));
-						System.out.println(start_date + "**************" + end_date);
 
 					} else {
 						String date = dateRangeText.trim();
 						start_date = tf.format(sf.parse(date));
 						end_date = start_date;
-						System.out.println(start_date + "**************" + end_date);
 					}
-					s_id = "select run_id , extracted_date from juniper_admin.JUNIPER_EXT_NIFI_STATUS where FEED_ID="
+					s_id = "select run_id , extracted_date from JUNIPER_EXT_NIFI_STATUS where FEED_ID="
 							+ src_id + " and UPPER(status)='SUCCESS' " + " AND extracted_date>=" + "'" + start_date
 							+ "'" + " AND extracted_date <=" + "'" + end_date + "' order by run_id asc";
 				} else {
-					s_id = "select run_id , extracted_date from juniper_admin.JUNIPER_EXT_NIFI_STATUS where FEED_ID="
+					s_id = "select run_id , extracted_date from JUNIPER_EXT_NIFI_STATUS where FEED_ID="
 							+ src_id + " and UPPER(status)='SUCCESS' order by run_id asc";
 				}
 			} else {
 				// s_id="select run_id , extracted_date from
-				// juniper_admin.JUNIPER_EXT_NIFI_STATUS where FEED_ID="+src_id+" and
+				// JUNIPER_EXT_NIFI_STATUS where FEED_ID="+src_id+" and
 				// UPPER(status)='SUCCESS' order by run_id asc";
 
 				//get the pub feed sequence based on google project name and target dataset
@@ -249,21 +248,21 @@ public class PublishingServiceImpl implements PublishingService {
 			}
 
 			Statement statement = conn.createStatement();
-			System.out.println("Query +" + s_id);
 			ResultSet rs = statement.executeQuery(s_id);
 			while (rs.next()) {
 				run_list.put(rs.getString(1), rs.getString(2));
 			}
 			// connectionUtils.closeQuietly(conn);
-			conn.close();
 			return run_list;
 		} catch (Exception e) {
-			// conn.close();
-			return run_list;
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
 		}
 	}
 
-	public ArrayList<String> getMDFileList(Integer src_id) {
+	public ArrayList<String> getMDFileList(Integer src_id) throws Exception {
 		// TODO Auto-generated method stub
 		ArrayList<String> file_list = new ArrayList<String>();
 		Connection conn = null;
@@ -276,15 +275,16 @@ public class PublishingServiceImpl implements PublishingService {
 				file_list.add(rs.getString(1));
 			}
 			// connectionUtils.closeQuietly(conn);
-			conn.close();
 			return file_list;
 		} catch (Exception e) {
-			// conn.close();
-			return file_list;
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
 		}
 	}
 
-	public SourceSystemBean getSourceSystemMetadata(int src_sys_id) {
+	public SourceSystemBean getSourceSystemMetadata(int src_sys_id) throws Exception {
 		SourceSystemBean system = new SourceSystemBean();
 		Connection conn = null;
 		try {
@@ -306,16 +306,16 @@ public class PublishingServiceImpl implements PublishingService {
 				system.setSa_name(rs.getString(9));
 			}
 			// connectionUtils.closeQuietly(conn);
-			conn.close();
 			return system;
 		} catch (Exception e) {
-			e.printStackTrace();
-			// conn.close();
-			return null;
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
 		}
 	}
 
-	public SourceSystemFileBean getSourceFileMetadata(int src_sys_id, String file_id) {
+	public SourceSystemFileBean getSourceFileMetadata(int src_sys_id, String file_id) throws Exception {
 		SourceSystemFileBean file = new SourceSystemFileBean();
 		Connection conn = null;
 		try {
@@ -323,7 +323,7 @@ public class PublishingServiceImpl implements PublishingService {
 			conn = connectionUtils.getConnection();
 			String s_id = "select FEED_TABLE_name ,FEED_TABLE_desc ,FEED_TABLE_type ,FEED_TABLE_delimiter ,tgt_tbl_name ,\r\n"
 					+ "				FEED_sch_loc ,FEED_hdr_cnt ,FEED_trl_cnt ,FEED_cnt_start_idx ,FEED_cnt_end_idx ,data_class_catg ,FEED_load_type\r\n"
-					+ "				from JUNIPER_ADMIN.JUNIPER_PUB_FEED_FILE_DTLS where PUB_FEED_SEQUENCE=" + src_sys_id
+					+ "				from JUNIPER_PUB_FEED_FILE_DTLS where PUB_FEED_SEQUENCE=" + src_sys_id
 					+ " and FEED_TABLE_id='" + file_id + "'";
 			Statement statement = conn.createStatement();
 			ResultSet rs = statement.executeQuery(s_id);
@@ -347,17 +347,17 @@ public class PublishingServiceImpl implements PublishingService {
 
 			}
 			// connectionUtils.closeQuietly(conn);
-			conn.close();
 			return file;
 		} catch (Exception e) {
-			// conn.close();
-			e.printStackTrace();
-			return null;
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
 		}
 	}
 
 	@Override
-	public List<SourceSystemFileBean> getSourceFiles(int src_sys_id) {
+	public List<SourceSystemFileBean> getSourceFiles(int src_sys_id) throws Exception {
 		List<SourceSystemFileBean> files = new ArrayList<SourceSystemFileBean>();
 		SourceSystemFileBean file = new SourceSystemFileBean();
 		Connection conn = null;
@@ -366,7 +366,7 @@ public class PublishingServiceImpl implements PublishingService {
 			conn = connectionUtils.getConnection();
 			String s_id = "select Upper(FEED_TABLE_name) as FEED_TABLE_name ,FEED_TABLE_desc ,FEED_TABLE_type ,FEED_TABLE_delimiter ,tgt_tbl_name ,\r\n"
 					+ "				FEED_sch_loc ,FEED_hdr_cnt ,FEED_trl_cnt ,FEED_cnt_start_idx ,FEED_cnt_end_idx ,data_class_catg ,FEED_load_type \r\n"
-					+ "				from JUNIPER_ADMIN.JUNIPER_PUB_FEED_FILE_DTLS  where PUB_FEED_SEQUENCE="
+					+ "				from JUNIPER_PUB_FEED_FILE_DTLS  where PUB_FEED_SEQUENCE="
 					+ src_sys_id;
 			Statement statement = conn.createStatement();
 			ResultSet rs = statement.executeQuery(s_id);
@@ -394,13 +394,14 @@ public class PublishingServiceImpl implements PublishingService {
 			conn.close();
 			return files;
 		} catch (Exception e) {
-			// conn.close();
-			e.printStackTrace();
-			return null;
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
 		}
 	}
 
-	public List<SourceSystemFieldBean> getSourceFieldMetadata(int src_sys_id, String file_id) {
+	public List<SourceSystemFieldBean> getSourceFieldMetadata(int src_sys_id, String file_id) throws Exception {
 		List<SourceSystemFieldBean> fields = new ArrayList<SourceSystemFieldBean>();
 		SourceSystemFieldBean fieldBean = null;
 		Connection conn = null;
@@ -408,7 +409,7 @@ public class PublishingServiceImpl implements PublishingService {
 			conn = connectionUtils.getConnection();
 			String s_id = "select FEED_fld_pos_num,FEED_sch_name,FEED_fld_name,FEED_fld_desc,FEED_fld_data_typ,\r\n"
 					+ "				trg_fld_data_typ,fld_null_flg,tgt_tbl_prtn_flg,pii_flg,fxd_fld_strt_idx,\r\n"
-					+ "			fxd_fld_end_idx,fxd_fld_len,pkey from JUNIPER_ADMIN.JUNIPER_PUB_FEED_FLD_DTLS \r\n"
+					+ "			fxd_fld_end_idx,fxd_fld_len,pkey from JUNIPER_PUB_FEED_FLD_DTLS \r\n"
 					+ "			 where PUB_FEED_SEQUENCE=" + src_sys_id + " and FEED_TABLE_id='" + file_id + "'";
 			Statement statement = conn.createStatement();
 			ResultSet rs = statement.executeQuery(s_id);
@@ -434,20 +435,21 @@ public class PublishingServiceImpl implements PublishingService {
 			conn.close();
 			return fields;
 		} catch (Exception e) {
-			e.printStackTrace();
-			// conn.close();
-			return null;
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
 		}
 	}
 
 	@Override
-	public Map<String, List<String>> getSourceFields(int src_sys_id) {
+	public Map<String, List<String>> getSourceFields(int src_sys_id) throws Exception {
 		Map<String, List<String>> fileFields = new HashMap<String, List<String>>();
 		List<String> fields = null;
 		Connection conn = null;
 		try {
 			conn = connectionUtils.getConnection();
-			String s_id = "select FEED_TABLE_id, FEED_fld_name from JUNIPER_ADMIN.JUNIPER_PUB_FEED_FLD_DTLS"
+			String s_id = "select FEED_TABLE_id, FEED_fld_name from JUNIPER_PUB_FEED_FLD_DTLS"
 					+ " where PUB_FEED_SEQUENCE=" + src_sys_id
 					+ " AND trg_fld_data_typ = 'DATE' OR trg_fld_data_typ = 'TIMESTAMP'  order by FEED_TABLE_id asc";
 			Statement statement = conn.createStatement();
@@ -466,20 +468,22 @@ public class PublishingServiceImpl implements PublishingService {
 			conn.close();
 			return fileFields;
 		} catch (Exception e) {
-			e.printStackTrace();
-			return null;
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
 		}
 	}
 
 	@Override
-	public Map<String, List<SourceSystemFieldBean>> getSourceFieldMetadata(int src_sys_id) {
+	public Map<String, List<SourceSystemFieldBean>> getSourceFieldMetadata(int src_sys_id) throws Exception {
 
 		Map<String, List<SourceSystemFieldBean>> fileFields = new HashMap<String, List<SourceSystemFieldBean>>();
 		List<SourceSystemFieldBean> fields = null;
 		Connection conn = null;
 		try {
 			conn = connectionUtils.getConnection();
-			String s_id = "select UPPER(FEED_TABLE_id) as FEED_TABLE_id, FEED_fld_pos_num,FEED_fld_name ,FEED_fld_data_typ,trg_fld_data_typ from JUNIPER_ADMIN.JUNIPER_PUB_FEED_FLD_DTLS"
+			String s_id = "select UPPER(FEED_TABLE_id) as FEED_TABLE_id, FEED_fld_pos_num,FEED_fld_name ,FEED_fld_data_typ,trg_fld_data_typ from JUNIPER_PUB_FEED_FLD_DTLS"
 					+ " where PUB_FEED_SEQUENCE=" + src_sys_id + "  order by FEED_TABLE_id asc";
 			System.out.println(s_id);
 			Statement statement = conn.createStatement();
@@ -509,25 +513,24 @@ public class PublishingServiceImpl implements PublishingService {
 					// fields.add("NONE");
 					// fields.add("LOAD_START_TIME");
 					fields.add(bean);
-
-					// .add(rs.getString(2));
 				}
 			}
-			conn.close();
 			return fileFields;
 		} catch (Exception e) {
-			e.printStackTrace();
-			return null;
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
 		}
 	}
 
-	public Map<String, List<String>> getSourceAllFields(int src_sys_id) {
+	public Map<String, List<String>> getSourceAllFields(int src_sys_id) throws Exception {
 		Map<String, List<String>> fileFields = new HashMap<String, List<String>>();
 		List<String> fields = null;
 		Connection conn = null;
 		try {
 			conn = connectionUtils.getConnection();
-			String s_id = "select FEED_TABLE_id, FEED_fld_name from JUNIPER_ADMIN.JUNIPER_PUB_FEED_FLD_DTLS"
+			String s_id = "select FEED_TABLE_id, FEED_fld_name from JUNIPER_PUB_FEED_FLD_DTLS"
 					+ " where PUB_FEED_SEQUENCE=" + src_sys_id + "  order by FEED_TABLE_id asc";
 			Statement statement = conn.createStatement();
 			ResultSet rs = statement.executeQuery(s_id);
@@ -545,12 +548,14 @@ public class PublishingServiceImpl implements PublishingService {
 			conn.close();
 			return fileFields;
 		} catch (Exception e) {
-			e.printStackTrace();
-			return null;
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
 		}
 	}
 
-	public ArrayList<String> populateDatasets(String proj_id) {
+	public ArrayList<String> populateDatasets(String proj_id) throws Exception {
 		// TODO Auto-generated method stub
 		ArrayList<String> file_list = new ArrayList<String>();
 		Connection conn = null;
@@ -564,59 +569,65 @@ public class PublishingServiceImpl implements PublishingService {
 			while (rs.next()) {
 				file_list.add(rs.getString(1));
 			}
-			conn.close();
 			return file_list;
 		} catch (Exception e) {
-			return file_list;
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
 		}
 	}
 
-	public ArrayList<String> populateSrcDBList() {
+	public ArrayList<String> populateSrcDBList() throws Exception {
 		// TODO Auto-generated method stub
 		ArrayList<String> file_list = new ArrayList<String>();
 		Connection conn = null;
 		try {
 			conn = connectionUtils.getConnection();
-			String s_id = "select distinct src_db_typ from JUNIPER_ADMIN.mstr_datatype_link_dtls";
+			String s_id = "select distinct src_db_typ from mstr_datatype_link_dtls";
 			Statement statement = conn.createStatement();
 			ResultSet rs = statement.executeQuery(s_id);
 			while (rs.next()) {
 				file_list.add(rs.getString(1));
 			}
-			conn.close();
 			return file_list;
 		} catch (Exception e) {
-			return file_list;
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
 		}
 	}
 
-	public ArrayList<String> populateTgtDBList() {
+	public ArrayList<String> populateTgtDBList() throws Exception {
 		// TODO Auto-generated method stub
 		ArrayList<String> file_list = new ArrayList<String>();
 		Connection conn = null;
 		try {
 			conn = connectionUtils.getConnection();
-			String s_id = "select distinct tgt_db_typ from JUNIPER_ADMIN.mstr_datatype_link_dtls";
+			String s_id = "select distinct tgt_db_typ from mstr_datatype_link_dtls";
 			Statement statement = conn.createStatement();
 			ResultSet rs = statement.executeQuery(s_id);
 			while (rs.next()) {
 				file_list.add(rs.getString(1));
 			}
 			// connectionUtils.closeQuietly(conn);
-			conn.close();
 			return file_list;
 		} catch (Exception e) {
-			return file_list;
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
 		}
 	}
 
-	public List<DataTypeLinkBean> getDataTypeLinkList(String src_db, String tgt_db) {
+	public List<DataTypeLinkBean> getDataTypeLinkList(String src_db, String tgt_db) throws Exception {
 		List<DataTypeLinkBean> dataTypeList = new ArrayList<DataTypeLinkBean>();
 		DataTypeLinkBean dataBean = null;
 		Connection conn = null;
 		try {
 			conn = connectionUtils.getConnection();
-			String s_id = "select src_data_typ,tgt_data_typ from JUNIPER_ADMIN.mstr_datatype_link_dtls where src_db_typ ="
+			String s_id = "select src_data_typ,tgt_data_typ from mstr_datatype_link_dtls where src_db_typ ="
 					+ "'" + src_db + "'" + "and tgt_db_typ='" + tgt_db + "'";
 			Statement statement = conn.createStatement();
 			ResultSet rs = statement.executeQuery(s_id);
@@ -627,31 +638,33 @@ public class PublishingServiceImpl implements PublishingService {
 				dataTypeList.add(dataBean);
 			}
 			// connectionUtils.closeQuietly(conn);
-			conn.close();
 			return dataTypeList;
-		} catch (Exception e) {
-			e.printStackTrace();
-			return null;
+		}catch (Exception e) {
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
 		}
 	}
 
-	public String getFeedName(String feed_id) {
+	public String getFeedName(String feed_id) throws Exception {
 		Connection conn = null;
 		String feed_name = null;
 		try {
 			conn = connectionUtils.getConnection();
-			String s_id = "SELECT PUB_FEED_NAME FROM JUNIPER_ADMIN.JUNIPER_PUB_FEED_DTLS where PUB_FEED_SEQUENCE="
+			String s_id = "SELECT PUB_FEED_NAME FROM JUNIPER_PUB_FEED_DTLS where PUB_FEED_SEQUENCE="
 					+ feed_id;
 			Statement statement = conn.createStatement();
 			ResultSet rs = statement.executeQuery(s_id);
 			while (rs.next()) {
 				feed_name = rs.getString(1);
 			}
-			conn.close();
 			return feed_name;
 		} catch (Exception e) {
-			e.printStackTrace();
-			return null;
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
 		}
 	}
 
@@ -685,7 +698,7 @@ public class PublishingServiceImpl implements PublishingService {
 	}
 
 	@Override
-	public Map<String, String> getReconSysIds() {
+	public Map<String, String> getReconSysIds() throws Exception {
 		Connection conn = null;
 		try {
 			Map<String, String> src_map = new HashMap<String, String>();
@@ -697,15 +710,17 @@ public class PublishingServiceImpl implements PublishingService {
 			while (rs.next()) {
 				src_map.put(rs.getString(1), rs.getString(2));
 			}
-			conn.close();
 			return src_map;
 		} catch (Exception e) {
-			return null;
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
 		}
 	}
 
 	@Override
-	public ArrayList<String> reconRunIDs(Integer src_id) {
+	public ArrayList<String> reconRunIDs(Integer src_id) throws Exception {
 		// TODO Auto-generated method stub
 		Connection conn = null;
 		ArrayList<String> run_list = new ArrayList<String>();
@@ -719,16 +734,17 @@ public class PublishingServiceImpl implements PublishingService {
 				run_list.add(rs.getString(1));
 			}
 			// connectionUtils.closeQuietly(conn);
-			conn.close();
 			return run_list;
 		} catch (Exception e) {
-			// conn.close();
-			return run_list;
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
 		}
 	}
 
 	@Override
-	public ArrayList<ReconDashboardBean> reconDashData(Integer src_id, String run_id) {
+	public ArrayList<ReconDashboardBean> reconDashData(Integer src_id, String run_id) throws Exception {
 		ArrayList<ReconDashboardBean> reconBeanList = new ArrayList<ReconDashboardBean>();
 		ReconDashboardBean reconBean = null;
 		Connection conn = null;
@@ -754,16 +770,17 @@ public class PublishingServiceImpl implements PublishingService {
 				reconBeanList.add(reconBean);
 			}
 			// connectionUtils.closeQuietly(conn);
-			conn.close();
 			return reconBeanList;
 		} catch (Exception e) {
-			e.printStackTrace();
-			return null;
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
 		}
 	}
 
 	@Override
-	public Map<String, String> getPubFeedIDs(String project) {
+	public Map<String, String> getPubFeedIDs(String project) throws Exception {
 		Connection conn = null;
 		try {
 			Map<String, String> src_map = new HashMap<String, String>();
@@ -779,18 +796,19 @@ public class PublishingServiceImpl implements PublishingService {
 			conn.close();
 			return src_map;
 		} catch (Exception e) {
-			// conn.close();
-			return null;
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
 		}
 	}
 
 	@Override
-	public ArrayList<String> populateGoogleProject(String project) {
+	public ArrayList<String> populateGoogleProject(String project) throws Exception {
 		ArrayList<String> gcpProjectList = new ArrayList<String>();
 
 		String query = "select DISTINCT GCP_PROJECT from JUNIPER_EXT_GCP_MASTER gp, JUNIPER_PROJECT_MASTER p where p.PROJECT_SEQUENCE=gp.PROJECT_SEQUENCE and p.project_id='"
 				+ project + "'";
-		System.out.println("query: " + query);
 		Connection conn = null;
 		try {
 			conn = connectionUtils.getConnection();
@@ -798,25 +816,24 @@ public class PublishingServiceImpl implements PublishingService {
 			ResultSet rs = statement.executeQuery(query);
 			while (rs.next()) {
 				gcpProjectList.add(rs.getString(1));
-				System.out.println(rs.getString(1));
 			}
 			// connectionUtils.closeQuietly(conn);
+			return gcpProjectList;
+		}catch (Exception e) {
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
 			conn.close();
-			return gcpProjectList;
-		} catch (Exception e) {
-			// conn.close();
-			return gcpProjectList;
 		}
 
 	}
 
 	@Override
-	public int getProjectSequence(String project) {
+	public int getProjectSequence(String project) throws Exception {
 		ArrayList<String> gcpProjectList = new ArrayList<String>();
 		int project_Sequence = 0;
 
 		String query = "select PROJECT_SEQUENCE from JUNIPER_PROJECT_MASTER  where project_id='" + project + "'";
-		System.out.println("query: " + query);
 		Connection conn = null;
 		try {
 			conn = connectionUtils.getConnection();
@@ -829,17 +846,18 @@ public class PublishingServiceImpl implements PublishingService {
 				project_Sequence = rs.getInt(1);
 			}
 			// connectionUtils.closeQuietly(conn);
-			conn.close();
 			return project_Sequence;
 		} catch (Exception e) {
-			// conn.close();
-			return project_Sequence;
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
 		}
 
 	}
 
 	@Override
-	public ArrayList<String> populateServiceAccList(String gcp_proj_id, String proj_id) {
+	public ArrayList<String> populateServiceAccList(String gcp_proj_id, String proj_id) throws Exception {
 		ArrayList<String> gcpProjectList = new ArrayList<String>();
 		String query = "select SERVICE_ACCOUNT_NAME from JUNIPER_EXT_GCP_MASTER gp, JUNIPER_PROJECT_MASTER p where p.PROJECT_SEQUENCE=gp.PROJECT_SEQUENCE and p.project_id='"
 				+ proj_id + "' AND gp.GCP_PROJECT='" + gcp_proj_id + "'";
@@ -853,11 +871,12 @@ public class PublishingServiceImpl implements PublishingService {
 				gcpProjectList.add(rs.getString(1));
 			}
 			// connectionUtils.closeQuietly(conn);
-			conn.close();
 			return gcpProjectList;
 		} catch (Exception e) {
-			// conn.close();
-			return gcpProjectList;
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
 		}
 
 	}
@@ -879,7 +898,6 @@ public class PublishingServiceImpl implements PublishingService {
 		String pub_feed_name = req_body.get("pub_feed_name");
 		String service_account_name = req_body.get("sa_name");
 		// int project_sequence = 1;
-		System.out.println("Service_Account_Name is" + service_account_name);
 
 		/*
 		 * String meta_data_path = ""; try { String run_id = run_id_list.split(",")[0];
@@ -1021,13 +1039,14 @@ public class PublishingServiceImpl implements PublishingService {
 	}
 
 	@Override
-	public int checkNames(@Valid String sun) {
+	public int checkNames(@Valid String sun) throws Exception {
 		Connection connection = null;
 		int stat = 0;
+		PreparedStatement pstm =null;
 		try {
-			connection = ConnectionUtils.getConnection();
-			PreparedStatement pstm = connection.prepareStatement(
-					"select PUB_FEED_NAME from juniper_admin.JUNIPER_PUB_FEED_DTLS where PUB_FEED_NAME='" + sun + "'");
+			connection = connectionUtils.getConnection();
+			pstm = connection.prepareStatement(
+					"select PUB_FEED_NAME from JUNIPER_PUB_FEED_DTLS where PUB_FEED_NAME='" + sun + "'");
 			ResultSet rs = pstm.executeQuery();
 			while (rs.next()) {
 				stat = 1;
@@ -1036,12 +1055,15 @@ public class PublishingServiceImpl implements PublishingService {
 		} catch (ClassNotFoundException | SQLException e) {
 			e.printStackTrace();
 		}
-		ConnectionUtils.closeQuietly(connection);
+		finally {
+			pstm.close();
+			connection.close();
+		}
 		return stat;
 	}
 
 	@Override
-	public ExistingPubBean getExistingPubDetails(String pub_feed_id) {
+	public ExistingPubBean getExistingPubDetails(String pub_feed_id) throws Exception {
 		ExistingPubBean exPubBean = null;
 		Connection conn = null;
 		try {
@@ -1058,11 +1080,12 @@ public class PublishingServiceImpl implements PublishingService {
 				exPubBean.setTarget_dataset(rs.getString(3));
 			}
 			// connectionUtils.closeQuietly(conn);
-			conn.close();
 			return exPubBean;
 		} catch (Exception e) {
-			e.printStackTrace();
-			return null;
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
 		}
 	}
 
@@ -1100,10 +1123,10 @@ public class PublishingServiceImpl implements PublishingService {
 	}
 
 	@Override
-	public String insertScheduleMetadata( String feed_name, String project, String cron)
+	public String insertScheduleMetadata( String feed_name, String gcp_name, String tgt_name, String project, String cron)
 			throws Exception {
 		try {
-			return DBUtils.insertScheduleMetadata(connectionUtils.getConnection(), feed_name, project, cron);
+			return DBUtils.insertScheduleMetadata(connectionUtils.getConnection(), feed_name,gcp_name,tgt_name, project, cron);
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1126,6 +1149,18 @@ public class PublishingServiceImpl implements PublishingService {
 			String saNAme, String projectId) throws Exception {
 		// TODO Auto-generated method stub
 		dataPublishingRepository.insertScheduleMetadataWithDependent(extractFeedSequence,pubFeedSequence, feedUniqueName, gcpName, saNAme, projectId);
+	}
+
+	@Override
+	public String insertOnDemandScheduleMetadata(String feed_name,String feed_id, String gcp_details, String project, String run_id)
+			throws Exception {
+		try {
+			return DBUtils.insertOnDemandScheduleMetadata(connectionUtils.getConnection(), feed_name,feed_id,gcp_details, project, run_id);
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			throw e;
+		}
 	}
 
 }
