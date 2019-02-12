@@ -2,11 +2,13 @@
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
 <script>
 function publishGraph(){
-	var src_sys_id = document.getElementById('src_sys_id').value;
-	var recon_run_id = document.getElementById('recon_runId').value;
+	var proj_id = document.getElementById('proj_id').value;
+	var run_id = document.getElementById('run_id').value;
+	var db_id = document.getElementById('db_id').value;
 	$.post('/publishing/reconDashboardValues', {
-			src_sys_id : src_sys_id,
-			recon_run_id : recon_run_id
+			proj_id : proj_id,
+			db_id : db_id,
+			run_id : run_id
 		}, function(data) {
 			$('#loadDashboard').html(data);
 	}); 
@@ -24,25 +26,23 @@ function publishGraph(){
 				<input type="hidden" name="x" id="x"> 
 					<div class="form-group row">
 						<div class="col-md-3">
-							<label>Source System Name<span style="color: red">*</span></label>
+							<label>Google Project<span style="color: red">*</span></label>
 						</div>
 						<div class="col-md-9">
-							<select class="form-control form-control1" id="src_sys_id"
-								name="src_sys_id">
-								<option value="" selected disabled>select source
-									system...</option>
-								<c:forEach var="myMap" items="${srcSysId}">
-									<option value="${myMap.key}"><c:out
-											value="${myMap.value}" /></option>
+							<select class="form-control form-control1" id="proj_id"
+								name="proj_id">
+								<option value="" selected disabled>select google project...</option>
+								<c:forEach items="${proj_list}" var="proj">
+										<option value="${proj}">${proj}</option>
 								</c:forEach>
 							</select>
 						</div>
 					</div>
-					<div id="loadRunIds"></div>
+					<div id="reconDSList"></div>
 					<br>
 					<div class="form-group">
 						<button type="submit" class="btn btn-rounded btn-gradient-info mr-2"  data-toggle="modal" data-target="#chartModal"
-						onclick="publishGraph();">Publish!</button>
+						onclick="publishGraph();">Reconcile!</button>
 					</div>
 					<div id="loadDashboard"></div>
 				</div>
@@ -52,12 +52,12 @@ function publishGraph(){
 </div>
 		<script>
 $(document).ready(function () {
-	$("#src_sys_id").change(function() {
-		var src_sys_id = $(this).val();	
-		$.post('/publishing/reconRunIds', {
-				src_sys_id : src_sys_id
+	$("#proj_id").change(function() {
+		var proj_id = $(this).val();	
+		$.post('/publishing/reconDSList', {
+			proj_id : proj_id
 			}, function(data) {
-				$('#loadRunIds').html(data)
+				$('#reconDSList').html(data)
 			});
 	})
 });	

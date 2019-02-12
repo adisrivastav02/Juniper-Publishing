@@ -150,16 +150,31 @@ public class PublishingController {
 	
 	@RequestMapping(value="/publishing/reconDashboard",method=RequestMethod.GET)
 	public ModelAndView reconDashboard(@Valid ModelMap model,HttpServletRequest request) {
-		Map<String, String> srcSysId;
+		ArrayList<String> proj_list;
 		try {
-			srcSysId = ps.getPubFeedIDs((String)request.getSession().getAttribute("project"));
-			model.addAttribute("srcSysId", srcSysId);
+			proj_list = ps.getProjList();
+			model.addAttribute("proj_list", proj_list);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
 	return new ModelAndView("/publishing/reconDashboard");
+	}
+	
+	@RequestMapping(value="/publishing/reconDSList",method=RequestMethod.POST)
+	public ModelAndView reconDSList(@Valid @ModelAttribute("proj_id")String proj_id,ModelMap model,HttpServletRequest request) {
+		ArrayList<String> db_list;
+		try {
+			db_list = ps.getDBList(proj_id);
+			model.addAttribute("db_list", db_list);
+			model.addAttribute("proj_id", proj_id);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	return new ModelAndView("/publishing/reconDashboard0");
 	}
 		
 	@RequestMapping(value="/publishing/publishingAddMetaData",method=RequestMethod.GET)
@@ -185,7 +200,6 @@ public class PublishingController {
 	//Populate list of Service Account
 	@RequestMapping(value="/publishing/serviceAccountList",method=RequestMethod.POST)
 	public ModelAndView serviceAccountList(@Valid @ModelAttribute("gcp_proj_id")String gcp_proj_id, ModelMap model,HttpServletRequest request) {
-		System.out.println("inside  sa list"+(String)request.getSession().getAttribute("project"));
 		ArrayList<String> sa_list;
 		try {
 			sa_list = ps.populateServiceAccList(gcp_proj_id,(String)request.getSession().getAttribute("project"));
@@ -306,7 +320,6 @@ public class PublishingController {
 		catch(Exception e) {
 			resp = "{ 'status': 'Failed','message':'FAILED TO SAVE FEED DETAILS' }";
 		}
-		System.out.println("RUNID is" + run_id);
 		model.addAttribute("run_id", run_id);
 		ArrayList<String> allDatabases = ps.populateDatasets((String)request.getSession().getAttribute("project"));
 		Map<String, String> srcSysIds = ps.getSysIds((String) request.getSession().getAttribute("project"));
@@ -351,13 +364,11 @@ public class PublishingController {
 		model.addAttribute("src_type", "Extracted");
 
 		String status0[] = resp.toString().split(":");
-		System.out.println(status0[0] + " value " + status0[1] + " value3: " + status0[2]);
 		String status1[] = status0[1].split(",");
 		String status = status1[0].replaceAll("\'", "").trim();
 		String message0 = status0[2];
 		String message = message0.replaceAll("[\'}]", "").trim();
 		String final_message = status + ": " + message;
-		System.out.println("final: " + final_message);
 		if (status.equalsIgnoreCase("Failed")) {
 			model.addAttribute("errorString", final_message);
 		} else if (status.equalsIgnoreCase("Success")) {
@@ -382,18 +393,15 @@ public class PublishingController {
 
 	@RequestMapping(value="/publishing/finalAddMetadata1",method=RequestMethod.POST)
 	public ModelAndView finalAddMetadataTemp(@Valid @ModelAttribute("z")String z, ModelMap model) throws UnsupportedOperationException, Exception {
-		    System.out.println("inside final add "+z);
 			//String resp = ps.invokeRest(z,"publish/confirmFeedDetails");
 			//Thread.sleep(5000);
 			String resp="{ 'status': 'Success','message':'FEED DETAILS SAVED SUCCESSFULLY' }";
 		    String status0[] = resp.toString().split(":");
-		    System.out.println(status0[0]+" value "+status0[1]+" value3: "+status0[2]);
 		    String status1[]=status0[1].split(",");
 		    String status=status1[0].replaceAll("\'","").trim();
 		    String message0=status0[2];
 		    String message=message0.replaceAll("[\'}]","").trim();
 		    String final_message=status+": "+message;
-		    System.out.println("final: "+final_message);
 		    if(status.equalsIgnoreCase("Failed"))
 		    {
 		    	model.addAttribute("errorString", final_message);
@@ -410,7 +418,6 @@ public class PublishingController {
 	@RequestMapping(value="/publishing/savePartitionInfo",method=RequestMethod.POST)
 	public ModelAndView savePartitionInfo(@Valid @ModelAttribute("z")String z, ModelMap model) throws UnsupportedOperationException, Exception {
 		//confirmFeedDetails
-		System.out.println("input Json in partition :" + z);
 		
 		//String resp = ps.invokeRest(z,"publish/savePartitionInfo");
 		
@@ -421,13 +428,11 @@ public class PublishingController {
 		String resp = ps.savePartitionDetails(requestDto);
 		
 		String status0[] = resp.toString().split(":");
-	    System.out.println(status0[0]+" value "+status0[1]+" value3: "+status0[2]);
 	    String status1[]=status0[1].split(",");
 	    String status=status1[0].replaceAll("\'","").trim();
 	    String message0=status0[2];
 	    String message=message0.replaceAll("[\'}]","").trim();
 	    String final_message=status+": "+message;
-	    System.out.println("final: "+final_message);
 	    if(status.equalsIgnoreCase("Failed"))
 	    {
 	    	model.addAttribute("errorString", final_message);
@@ -445,7 +450,6 @@ public class PublishingController {
 		Integer src_id=Integer.parseInt(src_sys_id);
 		runIdList=ps.getRunIds(src_id); 
 		model.addAttribute("runIdList", runIdList);*/
-		System.out.println("input Json :" + z);
 		if(! z.isEmpty()) {
 		//String resp = ps.invokeRest(z,"publish/saveMetadataChanges");
 		
@@ -456,13 +460,11 @@ public class PublishingController {
 		
 		String resp = ps.saveMetadataChanges(requestDto);
 		String status0[] = resp.toString().split(":");
-	    System.out.println(status0[0]+" value "+status0[1]+" value3: "+status0[2]);
 	    String status1[]=status0[1].split(",");
 	    String status=status1[0].replaceAll("\'","").trim();
 	    String message0=status0[2];
 	    String message=message0.replaceAll("[\'}]","").trim();
 	    String final_message=status+": "+message;
-	    System.out.println("final: "+final_message);
 	    if(status.equalsIgnoreCase("Failed"))
 	    {
 	    	model.addAttribute("errorString", final_message);
@@ -472,7 +474,6 @@ public class PublishingController {
 	    	model.addAttribute("successString", final_message);
 	    }
 		}
-		System.out.println("################# " + src_sys_id);
 		List<SourceSystemFileBean> fileList;
 		int feed_id = Integer.parseInt(src_sys_id);
 		fileList=ps.getSourceFiles(feed_id);
@@ -522,8 +523,6 @@ public class PublishingController {
 	/* Publish Metadata controller for existing system*/
 	@RequestMapping(value="/publishing/publishingExtracted1",method=RequestMethod.POST)
 	public ModelAndView publishingExtracted1(@Valid @ModelAttribute("p")String x, @ModelAttribute("pub_type")String pub_type, ModelMap model, HttpServletRequest request) throws UnsupportedOperationException, Exception {
-			System.out.println("JSON Publish" + x); 
-			System.out.println("pub_type" + pub_type);
 			String resp = "";
 			try {
 		if (pub_type.equalsIgnoreCase("BQ Load")) {
@@ -536,8 +535,10 @@ public class PublishingController {
 				String sch_freq = requestDto.getBody().get("data").get("sch_freq");
 				String feed_unique_name = requestDto.getBody().get("data").get("feed_unique_name");
 				String src_sys_id = requestDto.getBody().get("data").get("src_sys_id");
+				String pub_feed_id =  src_sys_id.split(":")[0] ;
+				String saName= requestDto.getBody().get("data").get("sa_name");
 				String feed_name = feed_unique_name + "_" + src_sys_id.split(":")[2] + "_" + src_sys_id.split(":")[3];
-				ps.insertScheduleMetadata(feed_unique_name,src_sys_id.split(":")[2], src_sys_id.split(":")[3], (String)request.getSession().getAttribute("project"), sch_freq);
+				ps.insertScheduleMetadata(feed_unique_name,pub_feed_id,src_sys_id.split(":")[2]+":" +src_sys_id.split(":")[3]+":"+ saName, (String)request.getSession().getAttribute("project"), sch_freq);
 				resp = "{ 'status': 'Success','message':'PUBLISHING JOB SCHEDULED SUCCESSFULLY' }";
 			} else if (sch_type.equalsIgnoreCase("Event_Based")) {
 				String extractFeedSequence = requestDto.getBody().get("data").get("src_sys_id").split(":")[4];
@@ -564,17 +565,23 @@ public class PublishingController {
 		}else {
 			 resp = ps.invokeRest(x,"publish/publishData");
 			}
+		ArrayList<String> allDatabases = ps.populateDatasets((String)request.getSession().getAttribute("project"));
+		ArrayList<String> googleProjectList= ps.populateGoogleProject((String)request.getSession().getAttribute("project"));
+		Map<String,String> srcSysIds = ps.getSysIds((String)request.getSession().getAttribute("project"));
+		Map<String,String> feedID = ps.getPubFeedIDs((String)request.getSession().getAttribute("project"));
+		model.addAttribute("allDatabases", allDatabases);
+		model.addAttribute("googleProjectList", googleProjectList);
+		model.addAttribute("feedID", feedID);
+		model.addAttribute("tgt_val", "BigQuery");
+		model.addAttribute("srcSysIds", srcSysIds);
 		  //Success or Failed status'
-			System.out.println("JSON Publish" + x);
 		   // String resp="{ 'status': 'Success','message':'PUBLISHING JOB TRIGGERED SUCCESSFULLY FOR THIS FEED' }";
 		    String status0[] = resp.toString().split(":");
-		    System.out.println(status0[0]+" value "+status0[1]+" value3: "+status0[2]);
 		    String status1[]=status0[1].split(",");
 		    String status=status1[0].replaceAll("\'","").trim();
 		    String message0=status0[2];
 		    String message=message0.replaceAll("[\'}]","").trim();
 		    String final_message=status+": "+message;
-		    System.out.println("final: "+final_message);
 		    if(status.equalsIgnoreCase("Failed"))
 		    {
 		    	model.addAttribute("errorString", final_message);
@@ -610,7 +617,6 @@ public class PublishingController {
 	@RequestMapping(value="/publishing/addMetadataRunIds",method=RequestMethod.POST)
 	public ModelAndView publishingAddMetadataRunIds(@Valid @ModelAttribute("src_sys_id")String src_sys_id,@ModelAttribute("pub_feed_id")String pub_feed_id, @ModelAttribute("is_new")String is_new,  @ModelAttribute("dateRangeText")String dateRangeText , ModelMap model) throws IOException, ClassNotFoundException, SQLException {
 		Map<String, String> runIdList;
-		System.out.println("inside new run id list");
 		Integer src_id=Integer.parseInt(src_sys_id.split(":")[0]);
 		try {
 			runIdList=ps.getRunIdsWithDate(src_id, dateRangeText,is_new,pub_feed_id);
@@ -625,7 +631,6 @@ public class PublishingController {
 	
 	@RequestMapping(value="/publishing/existingPublishRunIds",method=RequestMethod.POST)
 	public ModelAndView existingPublishRunIds(@Valid @ModelAttribute("src_sys_id")String src_sys_id,@ModelAttribute("target_dataset")String target_dataset, @ModelAttribute("is_new")String is_new,  @ModelAttribute("dateRangeText")String dateRangeText , ModelMap model) throws IOException, ClassNotFoundException, SQLException {
-		System.out.println("inside ex pun details bean"+" "+src_sys_id+" "+target_dataset+" "+is_new+" "+dateRangeText);
 		Map<String, String> runIdList;
 		Integer src_id=Integer.parseInt(src_sys_id.split(":")[0]);
 		try {
@@ -881,13 +886,11 @@ public class PublishingController {
 			//Thread.sleep(5000);
 			//String resp="{ 'status': 'Success','message':'DATATYPE MAPPING UPDATED SUCCESSFULLY' }";
 		    String status0[] = resp.toString().split(":");
-		    System.out.println(status0[0]+" value "+status0[1]+" value3: "+status0[2]);
 		    String status1[]=status0[1].split(",");
 		    String status=status1[0].replaceAll("\'","").trim();
 		    String message0=status0[2];
 		    String message=message0.replaceAll("[\'}]","").trim();
 		    String final_message=status+": "+message;
-		    System.out.println("final: "+final_message);
 		    if(status.equalsIgnoreCase("Failed"))
 		    {
 		    	model.addAttribute("errorString", final_message);
@@ -936,13 +939,11 @@ public class PublishingController {
 			    
 				//Success or Failed status
 				    String status0[] = resp.toString().split(":");
-				    System.out.println(status0[0]+" value "+status0[1]+" value3: "+status0[2]);
 				    String status1[]=status0[1].split(",");
 				    String status=status1[0].replaceAll("\'","").trim();
 				    String message0=status0[2];
 				    String message=message0.replaceAll("[\'}]","").trim();
 				    String final_message=status+": "+message;
-				    System.out.println("final: "+final_message);
 				    
 				    ArrayList<String> allDatabases= ps.populateDatasets((String)request.getSession().getAttribute("project"));
 					model.addAttribute("allDatabases", allDatabases);
@@ -965,26 +966,24 @@ public class PublishingController {
 		
 		//Recon Dashboard RUN ID Information
 		@RequestMapping(value="/publishing/reconRunIds",method=RequestMethod.POST)
-		public ModelAndView reconRunIds(@Valid @ModelAttribute("src_sys_id")String src_sys_id, ModelMap model) throws IOException, ClassNotFoundException, SQLException {
-			Integer src_id=Integer.parseInt(src_sys_id);
+		public ModelAndView reconRunIds(@Valid @ModelAttribute("db_id")String db_id,@Valid @ModelAttribute("proj_id")String proj_id, ModelMap model) throws IOException, ClassNotFoundException, SQLException {
 			ArrayList<String> runIDList;
 			try {
-				runIDList = ps.reconRunIDs(src_id);
+				runIDList = ps.reconRunIDs(proj_id,db_id);
 				model.addAttribute("runIDList", runIDList);
-				model.addAttribute("src_sys_id", src_sys_id);
+				model.addAttribute("db_id", db_id);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			return new ModelAndView("/publishing/reconDashboard0");
+			return new ModelAndView("/publishing/reconDashboard2");
 		} 
 		//Recon Dashboard values
 		@RequestMapping(value="/publishing/reconDashboardValues",method=RequestMethod.POST)
-		public ModelAndView reconDashboardValues(@Valid @ModelAttribute("src_sys_id")String src_sys_id,@Valid @ModelAttribute("recon_run_id")String recon_run_id, ModelMap model) throws IOException, ClassNotFoundException, SQLException {
-			Integer src_id=Integer.parseInt(src_sys_id);
+		public ModelAndView reconDashboardValues(@Valid @ModelAttribute("proj_id")String proj_id,@Valid @ModelAttribute("db_id")String db_id,@Valid @ModelAttribute("run_id")String run_id, ModelMap model) throws IOException, ClassNotFoundException, SQLException {
 			ArrayList<ReconDashboardBean> reconDataList;
 			try {
-				reconDataList = ps.reconDashData(src_id,recon_run_id);
+				reconDataList = ps.reconDashData(proj_id,db_id,run_id);
 				model.addAttribute("reconDataList",reconDataList);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block

@@ -508,7 +508,7 @@ public static void updateDataType(DataTypeMappingDto dto, Connection conn)throws
 
 
 
-public static String insertScheduleMetadata(Connection conn,String feed_name, String gcp_name, String tgt_name, String project,String cron) throws SQLException {
+public static String insertScheduleMetadata1(Connection conn,String feed_name, String gcp_name, String tgt_name, String project,String cron) throws SQLException {
 
 	Statement statement=conn.createStatement();
 	String insertQuery="";
@@ -968,6 +968,880 @@ public static String insertScheduleMetadata(Connection conn,String feed_name, St
 	}
 	return "success";
 }
+
+
+
+public static String insertScheduleMetadata(Connection conn,String feed_name, String feed_id, String gcp_details, String project,String cron) throws Exception {
+
+Statement statement=conn.createStatement();
+String insertQuery="";
+String hourlyFlag="";
+String dailyFlag="";
+String monthlyFlag="";
+String weeklyFlag="";
+String[] temp=cron.split(" ");
+String minutes=temp[0];
+String hours=temp[1];
+String dates=temp[2];
+String months=temp[3];
+String daysOfWeek=temp[4];
+int index=0;
+
+if(hours.equals("*")&&dates.equals("*")&&months.equals("*")&&(daysOfWeek.equals("*")) ) {
+	hourlyFlag="Y";
+}
+if(dates.equals("*")&&months.equals("*")&&daysOfWeek.equals("*")&&!hours.equals("*")&&!minutes.equals("*")) {
+	System.out.println("this is a dailyBatch");
+	dailyFlag="Y";
+}
+if(months.equals("*")&&daysOfWeek.equals("*")&&!dates.equals("*")&&!hours.equals("*")&&!minutes.equals("*")) {
+	System.out.println("this is a monthlyBatch");
+	monthlyFlag="Y";
+}
+if(dates.equals("*")&&months.equals("*")&&!minutes.equals("*")&&!hours.equals("*")&&!daysOfWeek.equals("*")) {
+	weeklyFlag="Y";
+	System.out.println("this is weeklyBatch");
+}
+
+
+int project_sequence=0;
+project_sequence=getProjectSequence(conn, project);
+
+
+	if(dailyFlag.equalsIgnoreCase("Y")) {
+		if(hours.contains(",")) {
+			for(String hour:hours.split(",")) {
+				
+				if(minutes.contains(",")) {
+					for(String minute:minutes.split(",")) {
+						/*insertQuery=MetadataDBConstants.INSERTQUERY.replace("{$table}", MetadataDBConstants.SCHEDULETABLE)
+								.replace("{$columns}", "job_id,job_name,batch_id,feed_id,command,argument_1,argument_3,argument_5,daily_flag,job_schedule_time,schedule_type,project_id")
+								.replace("{$data}",MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_name()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_id()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+SchedulerConstants.read_script+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"~"+schDto.getFeed_src_type()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+"$RUN_ID$"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getExtraction_mode()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+"Y"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+hour+":"+minute+":00"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+"R"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+schDto.getProject_seq());*/
+						
+						insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
+								.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,argument_5,daily_flag,job_schedule_time,project_id,feed_id,SCHEDULE_TYPE")
+								.replace("{$data}",OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+gcp_details +OracleConstants.QUOTE+OracleConstants.COMMA
+										//+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+"NA"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+hour+":"+minute+":00"+OracleConstants.QUOTE
+										+OracleConstants.COMMA+project_sequence+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_id+OracleConstants.QUOTE+OracleConstants.COMMA
+								+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE);
+						
+						System.out.println(insertQuery);
+						statement.execute(insertQuery);
+
+					}
+				}else {
+					insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
+							.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,argument_5,daily_flag,job_schedule_time,project_id,feed_id,SCHEDULE_TYPE")
+							.replace("{$data}",OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+gcp_details +OracleConstants.QUOTE+OracleConstants.COMMA
+									//+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+"NA"+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+hour+":"+minutes+":00"+OracleConstants.QUOTE
+									+OracleConstants.COMMA+project_sequence+OracleConstants.COMMA
+									+OracleConstants.QUOTE+feed_id+OracleConstants.QUOTE+OracleConstants.COMMA
+							+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE);
+									System.out.println(insertQuery);
+									statement.execute(insertQuery);
+										
+				}
+			}
+		}else {
+			if(minutes.contains(",")) {
+				for(String minute:minutes.split(",")) {
+					insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
+							.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,argument_5,daily_flag,job_schedule_time,project_id,feed_id,SCHEDULE_TYPE")
+							.replace("{$data}",OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+gcp_details +OracleConstants.QUOTE+OracleConstants.COMMA
+									//+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+"NA"+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+hours+":"+minute+":00"+OracleConstants.QUOTE
+									+OracleConstants.COMMA+project_sequence+OracleConstants.COMMA
+									+OracleConstants.QUOTE+feed_id+OracleConstants.QUOTE+OracleConstants.COMMA
+							+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE);
+					System.out.println(insertQuery);
+					statement.execute(insertQuery);
+					
+					
+					
+
+
+				}
+			}else {
+				insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
+						.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,argument_5,daily_flag,job_schedule_time,project_id,feed_id,SCHEDULE_TYPE")
+						.replace("{$data}",OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+								+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+								+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+								+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
+								+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+								+OracleConstants.QUOTE+gcp_details +OracleConstants.QUOTE+OracleConstants.COMMA
+								//+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+								+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
+								+OracleConstants.QUOTE+"NA"+OracleConstants.QUOTE+OracleConstants.COMMA
+								+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE+OracleConstants.COMMA
+								+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
+								+OracleConstants.QUOTE+hours+":"+minutes+":00"+OracleConstants.QUOTE
+								+OracleConstants.COMMA+project_sequence+OracleConstants.COMMA
+								+OracleConstants.QUOTE+feed_id+OracleConstants.QUOTE+OracleConstants.COMMA
+						+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE);
+				System.out.println(insertQuery);
+				statement.execute(insertQuery);
+				
+				
+				
+			}
+		}
+	} if(monthlyFlag.equalsIgnoreCase("Y")) {
+		if(dates.contains(",")) {
+			for(String date:dates.split(",")) {
+				if(hours.contains(",")) {
+					for(String hour:hours.split(",")) {
+						if(minutes.contains(",")) {
+							for(String minute:minutes.split(",")) {
+								/*insertQuery=MetadataDBConstants.INSERTQUERY.replace("{$table}", MetadataDBConstants.SCHEDULETABLE)
+										.replace("{$columns}", "job_id,job_name,batch_id,feed_id,command,argument_1,argument_3,argument_5,monthly_flag,month_run_day,job_schedule_time,schedule_type,project_id")
+										.replace("{$data}",MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+												+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+												+MetadataDBConstants.QUOTE+schDto.getFeed_name()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+												+MetadataDBConstants.QUOTE+schDto.getFeed_id()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+												+MetadataDBConstants.QUOTE+SchedulerConstants.read_script+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+												+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"~"+schDto.getFeed_src_type()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+												+MetadataDBConstants.QUOTE+"$RUN_ID$"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+												+MetadataDBConstants.QUOTE+schDto.getExtraction_mode()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+												+MetadataDBConstants.QUOTE+"Y"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+												+MetadataDBConstants.QUOTE+date+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+												+MetadataDBConstants.QUOTE+hour+":"+minute+":00"+MetadataDBConstants.QUOTE
+												+MetadataDBConstants.QUOTE+"R"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+												+MetadataDBConstants.COMMA+schDto.getProject_seq());*/
+								
+								insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
+										.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,argument_5,monthly_flag,month_run_day,job_schedule_time,project_id,feed_id,SCHEDULE_TYPE")
+										.replace("{$data}",OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+gcp_details +OracleConstants.QUOTE+OracleConstants.COMMA
+												//+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+"NA"+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+date+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+hour+":"+minutes+":00"+OracleConstants.QUOTE
+												+OracleConstants.COMMA+project_sequence+OracleConstants.COMMA
+												+OracleConstants.QUOTE+feed_id+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE);
+								System.out.println(insertQuery);
+								statement.execute(insertQuery); 
+								
+																
+							}
+
+						}
+						else {
+							/*insertQuery=MetadataDBConstants.INSERTQUERY.replace("{$table}", MetadataDBConstants.SCHEDULETABLE)
+									.replace("{$columns}", "job_id,job_name,batch_id,feed_id,command,argument_1,argument_3,argument_5,monthly_flag,month_run_day,job_schedule_time,schedule_type,project_id")
+									.replace("{$data}",MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getFeed_name()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getFeed_id()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+SchedulerConstants.read_script+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"~"+schDto.getFeed_src_type()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+"$RUN_ID$"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getExtraction_mode()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+"Y"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+date+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+date+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+hour+":"+minutes+":00"+MetadataDBConstants.QUOTE
+											+MetadataDBConstants.QUOTE+"R"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.COMMA+schDto.getProject_seq());*/
+							
+							insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
+									.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,argument_5,monthly_flag,month_run_day,job_schedule_time,project_id,feed_id,SCHEDULE_TYPE")
+									.replace("{$data}",OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+gcp_details +OracleConstants.QUOTE+OracleConstants.COMMA
+											//+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+"NA"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+date+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+hour+":"+minutes+":00"+OracleConstants.QUOTE
+											+OracleConstants.COMMA+project_sequence+OracleConstants.COMMA
+											+OracleConstants.QUOTE+feed_id+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE);
+							
+							
+							System.out.println(insertQuery);
+							statement.execute(insertQuery);
+							
+							
+						}
+					}
+
+
+
+
+				}else {
+					if(minutes.contains(",")) {
+						for(String minute:minutes.split(",")) {
+							/*insertQuery=MetadataDBConstants.INSERTQUERY.replace("{$table}", MetadataDBConstants.SCHEDULETABLE)
+									.replace("{$columns}", "job_id,job_name,batch_id,feed_id,command,argument_1,argument_3,argument_5,monthly_flag,month_run_day,job_schedule_time,schedule_type,project_id")
+									.replace("{$data}",MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getFeed_name()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getFeed_id()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+SchedulerConstants.read_script+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"~"+schDto.getFeed_src_type()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+"$RUN_ID$"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getExtraction_mode()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+"Y"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+date+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+hours+":"+minute+":00"+MetadataDBConstants.QUOTE
+											+MetadataDBConstants.QUOTE+"R"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.COMMA+schDto.getProject_seq());*/
+							
+							
+							insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
+									.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,argument_5,monthly_flag,month_run_day,job_schedule_time,project_id,feed_id,SCHEDULE_TYPE")
+									.replace("{$data}",OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+gcp_details +OracleConstants.QUOTE+OracleConstants.COMMA
+											//+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+"NA"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+date+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+hours+":"+minute+":00"+OracleConstants.QUOTE
+											+OracleConstants.COMMA+project_sequence+OracleConstants.COMMA
+											+OracleConstants.QUOTE+feed_id+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE);
+							System.out.println(insertQuery);
+							statement.execute(insertQuery); 
+							
+						}
+
+					} 			else {
+						/*insertQuery=MetadataDBConstants.INSERTQUERY.replace("{$table}", MetadataDBConstants.SCHEDULETABLE)
+								.replace("{$columns}", "job_id,job_name,batch_id,feed_id,command,argument_1,argument_3,argument_5,monthly_flag,month_run_day,job_schedule_time,schedule_type,project_id")
+								.replace("{$data}",MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_name()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_id()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+SchedulerConstants.read_script+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"~"+schDto.getFeed_src_type()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+"$RUN_ID$"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getExtraction_mode()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+"Y"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+date+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+hours+":"+minutes+":00"+MetadataDBConstants.QUOTE
+										+MetadataDBConstants.QUOTE+"R"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.COMMA+schDto.getProject_seq());*/
+						
+						
+						insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
+								.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,argument_5,monthly_flag,month_run_day,job_schedule_time,project_id,feed_id,SCHEDULE_TYPE")
+								.replace("{$data}",OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+gcp_details +OracleConstants.QUOTE+OracleConstants.COMMA
+										//+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+"NA"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+date+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+hours+":"+minutes+":00"+OracleConstants.QUOTE
+										+OracleConstants.COMMA+project_sequence+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_id+OracleConstants.QUOTE+OracleConstants.COMMA
+								+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE);
+						System.out.println(insertQuery);
+						statement.execute(insertQuery);
+						
+					}	
+				}
+			}
+		}
+		else {
+			if(hours.contains(",")) {
+				for(String hour:hours.split(",")) {
+					if(minutes.contains(",")) {
+						for(String minute:minutes.split(",")) {
+							/*insertQuery=MetadataDBConstants.INSERTQUERY.replace("{$table}", MetadataDBConstants.SCHEDULETABLE)
+									.replace("{$columns}", "job_id,job_name,batch_id,feed_id,command,argument_1,argument_3,argument_5,monthly_flag,month_run_day,job_schedule_time,schedule_type,project_id")
+									.replace("{$data}",MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getFeed_name()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getFeed_id()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+SchedulerConstants.read_script+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"~"+schDto.getFeed_src_type()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+"$RUN_ID$"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getExtraction_mode()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+"Y"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+dates+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+hour+":"+minute+":00"+MetadataDBConstants.QUOTE
+											+MetadataDBConstants.QUOTE+"R"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.COMMA+schDto.getProject_seq());*/
+							
+							
+							insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
+									.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,argument_5,monthly_flag,month_run_day,job_schedule_time,project_id,feed_id,SCHEDULE_TYPE")
+									.replace("{$data}",OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+gcp_details +OracleConstants.QUOTE+OracleConstants.COMMA
+											//+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+"NA"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+dates+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+hour+":"+minute+":00"+OracleConstants.QUOTE
+											+OracleConstants.COMMA+project_sequence+OracleConstants.COMMA
+											+OracleConstants.QUOTE+feed_id+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE);
+							System.out.println(insertQuery);
+							statement.execute(insertQuery); 
+							
+							
+						}
+
+					}
+					else {
+						/*insertQuery=MetadataDBConstants.INSERTQUERY.replace("{$table}", MetadataDBConstants.SCHEDULETABLE)
+								.replace("{$columns}", "job_id,job_name,batch_id,feed_id,command,argument_1,argument_3,argument_5,monthly_flag,month_run_day,job_schedule_time,schedule_type,project_id")
+								.replace("{$data}",MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_name()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_id()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+SchedulerConstants.read_script+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"~"+schDto.getFeed_src_type()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+"$RUN_ID$"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getExtraction_mode()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+"Y"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+dates+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+hour+":"+minutes+":00"+MetadataDBConstants.QUOTE
+										+MetadataDBConstants.QUOTE+"R"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.COMMA+schDto.getProject_seq());*/
+						
+						
+						insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
+								.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,argument_5,monthly_flag,month_run_day,job_schedule_time,project_id,feed_id,SCHEDULE_TYPE")
+								.replace("{$data}",OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+gcp_details +OracleConstants.QUOTE+OracleConstants.COMMA
+										//+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+"NA"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+dates+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+hour+":"+minutes+":00"+OracleConstants.QUOTE
+										+OracleConstants.COMMA+project_sequence+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_id+OracleConstants.QUOTE+OracleConstants.COMMA
+								+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE);
+						System.out.println(insertQuery);
+						statement.execute(insertQuery);
+						
+					}
+				}
+
+
+
+
+			}else {
+				if(minutes.contains(",")) {
+					for(String minute:minutes.split(",")) {
+						/*insertQuery=MetadataDBConstants.INSERTQUERY.replace("{$table}", MetadataDBConstants.SCHEDULETABLE)
+								.replace("{$columns}", "job_id,job_name,batch_id,feed_id,command,argument_1,argument_3,argument_5,monthly_flag,month_run_day,job_schedule_time,schedule_type,project_id")
+								.replace("{$data}",MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_name()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_id()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+SchedulerConstants.read_script+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"~"+schDto.getFeed_src_type()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+"$RUN_ID$"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getExtraction_mode()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+"Y"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+dates+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+hours+":"+minute+":00"+MetadataDBConstants.QUOTE
+										+MetadataDBConstants.QUOTE+"R"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.COMMA+schDto.getProject_seq());*/
+						
+						insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
+								.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,argument_5,monthly_flag,month_run_day,job_schedule_time,project_id,feed_id,SCHEDULE_TYPE")
+								.replace("{$data}",OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+gcp_details +OracleConstants.QUOTE+OracleConstants.COMMA
+										//+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+"NA"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+dates+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+hours+":"+minute+":00"+OracleConstants.QUOTE
+										+OracleConstants.COMMA+project_sequence+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_id+OracleConstants.QUOTE+OracleConstants.COMMA
+								+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE);
+						System.out.println(insertQuery);
+						statement.execute(insertQuery); 
+						
+					}
+
+				}else {
+					/*insertQuery=MetadataDBConstants.INSERTQUERY.replace("{$table}", MetadataDBConstants.SCHEDULETABLE)
+							.replace("{$columns}", "job_id,job_name,batch_id,feed_id,command,argument_1,argument_3,argument_5,monthly_flag,month_run_day,job_schedule_time,schedule_type,project_id")
+							.replace("{$data}",MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+									+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+									+MetadataDBConstants.QUOTE+schDto.getFeed_name()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+									+MetadataDBConstants.QUOTE+schDto.getFeed_id()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+									+MetadataDBConstants.QUOTE+SchedulerConstants.read_script+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+									+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"~"+schDto.getFeed_src_type()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+									+MetadataDBConstants.QUOTE+"$RUN_ID$"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+									+MetadataDBConstants.QUOTE+schDto.getExtraction_mode()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+									+MetadataDBConstants.QUOTE+"Y"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+									+MetadataDBConstants.QUOTE+dates+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+									+MetadataDBConstants.QUOTE+hours+":"+minutes+":00"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+									+MetadataDBConstants.QUOTE+"R"+MetadataDBConstants.QUOTE
+									+MetadataDBConstants.COMMA+schDto.getProject_seq());*/
+					
+					
+					insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
+							.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,argument_5,monthly_flag,month_run_day,job_schedule_time,project_id,feed_id,SCHEDULE_TYPE")
+							.replace("{$data}",OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+gcp_details +OracleConstants.QUOTE+OracleConstants.COMMA
+									//+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+"NA"+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+dates+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+hours+":"+minutes+":00"+OracleConstants.QUOTE
+									+OracleConstants.COMMA+project_sequence+OracleConstants.COMMA
+									+OracleConstants.QUOTE+feed_id+OracleConstants.QUOTE+OracleConstants.COMMA
+							+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE);
+					
+					
+					System.out.println(insertQuery);
+					statement.execute(insertQuery);
+					
+				}	
+			}
+		}
+	}if(weeklyFlag.equalsIgnoreCase("Y")) {
+		if(daysOfWeek.contains(",")) {
+			for(String day:daysOfWeek.split(",")) {
+				if(hours.contains(",")) {
+					for(String hour:hours.split(",")) {
+						if(minutes.contains(",")) {
+							for(String minute:minutes.split(",")) {
+								/*insertQuery=MetadataDBConstants.INSERTQUERY.replace("{$table}", MetadataDBConstants.SCHEDULETABLE)
+										.replace("{$columns}", "job_id,job_name,batch_id,feed_id,command,argument_1,argument_3,argument_5,weekly_flag,week_run_day,job_schedule_time,schedule_type,project_id")
+										.replace("{$data}",MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+												+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+												+MetadataDBConstants.QUOTE+schDto.getFeed_name()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+												+MetadataDBConstants.QUOTE+schDto.getFeed_id()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+												+MetadataDBConstants.QUOTE+SchedulerConstants.read_script+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+												+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"~"+schDto.getFeed_src_type()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+												+MetadataDBConstants.QUOTE+"$RUN_ID$"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+												+MetadataDBConstants.QUOTE+schDto.getExtraction_mode()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+												+MetadataDBConstants.QUOTE+"Y"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+												+MetadataDBConstants.QUOTE+day+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+												+MetadataDBConstants.QUOTE+hour+":"+minute+":00"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+												+MetadataDBConstants.QUOTE+"R"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+												+schDto.getProject_seq());*/
+								
+								
+								insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
+										.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,argument_5,weekly_flag,week_run_day,job_schedule_time,project_id,feed_id,SCHEDULE_TYPE")
+										.replace("{$data}",OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+gcp_details +OracleConstants.QUOTE+OracleConstants.COMMA
+												//+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+"NA"+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+day+OracleConstants.QUOTE+OracleConstants.COMMA
+												+OracleConstants.QUOTE+hour+":"+minute+":00"+OracleConstants.QUOTE
+												+OracleConstants.COMMA+project_sequence+OracleConstants.COMMA
+												+OracleConstants.QUOTE+feed_id+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE);
+								statement.execute(insertQuery);
+								
+								
+							}
+						}else {
+							/*insertQuery=MetadataDBConstants.INSERTQUERY.replace("{$table}", MetadataDBConstants.SCHEDULETABLE)
+									.replace("{$columns}", "job_id,job_name,batch_id,feed_id,command,argument_1,argument_3,argument_5,weekly_flag,week_run_day,job_schedule_time,schedule_type,project_id")
+									.replace("{$data}",MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getFeed_name()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getFeed_id()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+SchedulerConstants.read_script+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"~"+schDto.getFeed_src_type()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+"$RUN_ID$"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getExtraction_mode()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+"Y"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+day+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+hour+":"+minutes+":00"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+"R"+MetadataDBConstants.QUOTE
+											+MetadataDBConstants.COMMA+schDto.getProject_seq());*/
+							
+							
+							insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
+									.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,argument_5,weekly_flag,week_run_day,job_schedule_time,project_id,feed_id,SCHEDULE_TYPE")
+									.replace("{$data}",OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+gcp_details +OracleConstants.QUOTE+OracleConstants.COMMA
+											//+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+"NA"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+day+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+hour+":"+minutes+":00"+OracleConstants.QUOTE
+											+OracleConstants.COMMA+project_sequence+OracleConstants.COMMA
+											+OracleConstants.QUOTE+feed_id+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE);
+							
+							
+							statement.execute(insertQuery);
+							
+						}
+					}
+				}else {
+
+					if(minutes.contains(",")) {
+						for(String minute:minutes.split(",")) {
+							/*insertQuery=MetadataDBConstants.INSERTQUERY.replace("{$table}", MetadataDBConstants.SCHEDULETABLE)
+									.replace("{$columns}", "job_id,job_name,batch_id,feed_id,command,argument_1,argument_3,argument_5,weekly_flag,week_run_day,job_schedule_time,schedule_type,project_id")
+									.replace("{$data}",MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getFeed_name()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getFeed_id()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+SchedulerConstants.read_script+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"~"+schDto.getFeed_src_type()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+"$RUN_ID$"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getExtraction_mode()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+"Y"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+day+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+hours+":"+minute+":00"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+"R"+MetadataDBConstants.QUOTE
+											+MetadataDBConstants.COMMA+schDto.getProject_seq());*/
+							
+							
+							insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
+									.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,argument_5,weekly_flag,week_run_day,job_schedule_time,project_id,feed_id,SCHEDULE_TYPE")
+									.replace("{$data}",OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+gcp_details +OracleConstants.QUOTE+OracleConstants.COMMA
+											//+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+"NA"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+day+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+hours+":"+minute+":00"+OracleConstants.QUOTE
+											+OracleConstants.COMMA+project_sequence+OracleConstants.COMMA
+											+OracleConstants.QUOTE+feed_id+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE);
+							
+							
+							statement.execute(insertQuery);
+							
+						}
+					}else {
+						/*insertQuery=MetadataDBConstants.INSERTQUERY.replace("{$table}", MetadataDBConstants.SCHEDULETABLE)
+								.replace("{$columns}", "job_id,job_name,batch_id,feed_id,command,argument_1,argument_3,argument_5,weekly_flag,week_run_day,job_schedule_time,schedule_type,project_id")
+								.replace("{$data}",MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_name()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_id()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+SchedulerConstants.read_script+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"~"+schDto.getFeed_src_type()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+"$RUN_ID$"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getExtraction_mode()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+"Y"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+day+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+hours+":"+minutes+":00"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+"R"+MetadataDBConstants.QUOTE
+										+MetadataDBConstants.COMMA+schDto.getProject_seq());*/
+						
+						insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
+								.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,argument_5,weekly_flag,week_run_day,job_schedule_time,project_id,feed_id,SCHEDULE_TYPE")
+								.replace("{$data}",OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+gcp_details +OracleConstants.QUOTE+OracleConstants.COMMA
+										//+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+"NA"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+day+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+hours+":"+minutes+":00"+OracleConstants.QUOTE
+										+OracleConstants.COMMA+project_sequence+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_id+OracleConstants.QUOTE+OracleConstants.COMMA
+								+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE);
+						statement.execute(insertQuery);
+						
+					}
+				}
+			}
+		}else {
+			if(hours.contains(",")) {
+				for(String hour:hours.split(",")) {
+					if(minutes.contains(",")) {
+						for(String minute:minutes.split(",")) {
+							/*insertQuery=MetadataDBConstants.INSERTQUERY.replace("{$table}", MetadataDBConstants.SCHEDULETABLE)
+									.replace("{$columns}", "job_id,job_name,batch_id,feed_id,command,argument_1,argument_3,argument_5,weekly_flag,week_run_day,job_schedule_time,schedule_type,project_id")
+									.replace("{$data}",MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getFeed_name()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getFeed_id()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+SchedulerConstants.read_script+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"~"+schDto.getFeed_src_type()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+"$RUN_ID$"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+schDto.getExtraction_mode()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+"Y"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+daysOfWeek+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+hour+":"+minute+":00"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+											+MetadataDBConstants.QUOTE+"R"+MetadataDBConstants.QUOTE
+											+MetadataDBConstants.COMMA+schDto.getProject_seq());*/
+							
+							
+							insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
+									.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,argument_5,weekly_flag,week_run_day,job_schedule_time,project_id,feed_id,SCHEDULE_TYPE")
+									.replace("{$data}",OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+gcp_details +OracleConstants.QUOTE+OracleConstants.COMMA
+											//+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+"NA"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+daysOfWeek+OracleConstants.QUOTE+OracleConstants.COMMA
+											+OracleConstants.QUOTE+hour+":"+minute+":00"+OracleConstants.QUOTE
+											+OracleConstants.COMMA+project_sequence+OracleConstants.COMMA
+											+OracleConstants.QUOTE+feed_id+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE);
+							
+							statement.execute(insertQuery);
+							
+						}
+					}else {
+						/*insertQuery=MetadataDBConstants.INSERTQUERY.replace("{$table}", MetadataDBConstants.SCHEDULETABLE)
+								.replace("{$columns}", "job_id,job_name,batch_id,feed_id,command,argument_1,argument_3,argument_5,weekly_flag,week_run_day,job_schedule_time,schedule_type,project_id")
+								.replace("{$data}",MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_name()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_id()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+SchedulerConstants.read_script+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"~"+schDto.getFeed_src_type()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+"$RUN_ID$"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getExtraction_mode()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+"Y"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+daysOfWeek+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+hour+":"+minutes+":00"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+"R"+MetadataDBConstants.QUOTE
+										+MetadataDBConstants.COMMA+schDto.getProject_seq());*/
+						
+						
+						insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
+								.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,argument_5,weekly_flag,week_run_day,job_schedule_time,project_id,feed_id,SCHEDULE_TYPE")
+								.replace("{$data}",OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+gcp_details +OracleConstants.QUOTE+OracleConstants.COMMA
+										//+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+"NA"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+daysOfWeek+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+hour+":"+minutes+":00"+OracleConstants.QUOTE
+										+OracleConstants.COMMA+project_sequence+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_id+OracleConstants.QUOTE+OracleConstants.COMMA
+								+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE);
+						
+						
+						statement.execute(insertQuery);
+						
+					}
+				}
+			}else {
+
+				if(minutes.contains(",")) {
+					for(String minute:minutes.split(",")) {
+						/*insertQuery=MetadataDBConstants.INSERTQUERY.replace("{$table}", MetadataDBConstants.SCHEDULETABLE)
+								.replace("{$columns}", "job_id,job_name,batch_id,feed_id,command,argument_1,argument_3,argument_5,weekly_flag,week_run_day,job_schedule_time,schedule_type,project_id")
+								.replace("{$data}",MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_name()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_id()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+SchedulerConstants.read_script+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"~"+schDto.getFeed_src_type()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+"$RUN_ID$"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+schDto.getExtraction_mode()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+"Y"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+daysOfWeek+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+hours+":"+minute+":00"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+										+MetadataDBConstants.QUOTE+"R"+MetadataDBConstants.QUOTE
+										+MetadataDBConstants.COMMA+schDto.getProject_seq());*/
+						
+						
+						
+						
+						insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
+								.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,argument_5,weekly_flag,week_run_day,job_schedule_time,project_id,feed_id,SCHEDULE_TYPE")
+								.replace("{$data}",OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+gcp_details +OracleConstants.QUOTE+OracleConstants.COMMA
+										//+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+"NA"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+daysOfWeek+OracleConstants.QUOTE+OracleConstants.COMMA
+										+OracleConstants.QUOTE+hours+":"+minute+":00"+OracleConstants.QUOTE
+										+OracleConstants.COMMA+project_sequence+OracleConstants.COMMA
+										+OracleConstants.QUOTE+feed_id+OracleConstants.QUOTE+OracleConstants.COMMA
+								+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE);
+						
+						statement.execute(insertQuery);
+						
+					}
+				}else {
+					/*insertQuery=MetadataDBConstants.INSERTQUERY.replace("{$table}", MetadataDBConstants.SCHEDULETABLE)
+							.replace("{$columns}", "job_id,job_name,batch_id,feed_id,command,argument_1,argument_3,argument_5,weekly_flag,week_run_day,job_schedule_time,schedule_type,project_id")
+							.replace("{$data}",MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+									+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"_read"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+									+MetadataDBConstants.QUOTE+schDto.getFeed_name()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+									+MetadataDBConstants.QUOTE+schDto.getFeed_id()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+									+MetadataDBConstants.QUOTE+SchedulerConstants.read_script+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+									+MetadataDBConstants.QUOTE+schDto.getFeed_name()+"~"+schDto.getFeed_src_type()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+									+MetadataDBConstants.QUOTE+"$RUN_ID$"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+									+MetadataDBConstants.QUOTE+schDto.getExtraction_mode()+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+									+MetadataDBConstants.QUOTE+"Y"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+									+MetadataDBConstants.QUOTE+daysOfWeek+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+									+MetadataDBConstants.QUOTE+hours+":"+minutes+":00"+MetadataDBConstants.QUOTE+MetadataDBConstants.COMMA
+									+MetadataDBConstants.QUOTE+"R"+MetadataDBConstants.QUOTE
+									+MetadataDBConstants.COMMA+schDto.getProject_seq());*/
+					
+					
+					insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
+							.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,argument_5,weekly_flag,week_run_day,job_schedule_time,project_id,feed_id,SCHEDULE_TYPE")
+							.replace("{$data}",OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+feed_name+"_TimeBasedPublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+gcp_details +OracleConstants.QUOTE+OracleConstants.COMMA
+									//+OracleConstants.QUOTE+tgt_name+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+project_sequence+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+"NA"+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+"Y"+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+daysOfWeek+OracleConstants.QUOTE+OracleConstants.COMMA
+									+OracleConstants.QUOTE+hours+":"+minutes+":00"+OracleConstants.QUOTE
+									+OracleConstants.COMMA+project_sequence+OracleConstants.COMMA
+									+OracleConstants.QUOTE+feed_id+OracleConstants.QUOTE+OracleConstants.COMMA
+							+OracleConstants.QUOTE+"R"+OracleConstants.QUOTE);
+					
+					statement.execute(insertQuery);
+					
+				}
+			}
+		}
+	}
+
+
+
+
+
+
+return "success";
+}
+
 
 public static String insertOnDemandScheduleMetadata(Connection conn,String feed_name, String feed_id, String gcp_details, String project, String run_id) throws SQLException {
 	Statement statement=conn.createStatement();

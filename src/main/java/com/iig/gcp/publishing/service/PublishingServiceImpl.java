@@ -485,7 +485,6 @@ public class PublishingServiceImpl implements PublishingService {
 			conn = connectionUtils.getConnection();
 			String s_id = "select UPPER(FEED_TABLE_id) as FEED_TABLE_id, FEED_fld_pos_num,FEED_fld_name ,FEED_fld_data_typ,trg_fld_data_typ from JUNIPER_PUB_FEED_FLD_DTLS"
 					+ " where PUB_FEED_SEQUENCE=" + src_sys_id + "  order by FEED_TABLE_id asc";
-			System.out.println(s_id);
 			Statement statement = conn.createStatement();
 			ResultSet rs = statement.executeQuery(s_id);
 			SourceSystemFieldBean bean = null;
@@ -719,32 +718,10 @@ public class PublishingServiceImpl implements PublishingService {
 		}
 	}
 
-	@Override
-	public ArrayList<String> reconRunIDs(Integer src_id) throws Exception {
-		// TODO Auto-generated method stub
-		Connection conn = null;
-		ArrayList<String> run_list = new ArrayList<String>();
-		try {
-			conn = connectionUtils.getConnection();
-			String s_id = "select distinct run_id from JUNIPER_PUB_FEED_STATUS where PUB_FEED_SEQUENCE =" + src_id
-					+ " AND UPPER(STATUS)='SUCCESS'";
-			Statement statement = conn.createStatement();
-			ResultSet rs = statement.executeQuery(s_id);
-			while (rs.next()) {
-				run_list.add(rs.getString(1));
-			}
-			// connectionUtils.closeQuietly(conn);
-			return run_list;
-		} catch (Exception e) {
-			System.out.println("Exception occured "+e);
-			throw e;
-		} finally {
-			conn.close();
-		}
-	}
+	
 
 	@Override
-	public ArrayList<ReconDashboardBean> reconDashData(Integer src_id, String run_id) throws Exception {
+	public ArrayList<ReconDashboardBean> reconDashData(String proj_id,String db_id,String run_id) throws Exception {
 		ArrayList<ReconDashboardBean> reconBeanList = new ArrayList<ReconDashboardBean>();
 		ReconDashboardBean reconBean = null;
 		Connection conn = null;
@@ -755,11 +732,12 @@ public class PublishingServiceImpl implements PublishingService {
 			 * "FROM batch_audit_job_dtls \r\n" + "WHERE src_sys_id ="+src_id+"\r\n" +
 			 * "AND run_id="+"'"+run_id+"'";
 			 */
-			String s_id = "select ext.TABLE_NAME,ext.TABLE_COUNT, pub.tgt_record_count from (select FEED_ID,RUN_ID,SUBSTR(TABLE_NAME, INSTR(TABLE_NAME, '.') + 1) AS TABLE_NAME,TABLE_COUNT from JUNIPER_EXT_TABLE_STATUS_VW)ext,(select p.PUB_FEED_SEQUENCE, p.FEED_TABLE_ID, p.RUN_ID, p.TGT_RECORD_COUNT , m.EXT_FEED_SEQUENCE from JUNIPER_PUB_FEED_TBL_STATS p , JUNIPER_PUB_FEED_DTLS m where p.PUB_FEED_SEQUENCE=m.PUB_FEED_SEQUENCE and m.PUB_FEED_SEQUENCE="
-					+ src_id
-					+ ") pub where ext.FEED_ID=pub.EXT_FEED_SEQUENCE and ext.run_id = pub.run_id and ext.TABLE_NAME = pub.FEED_TABLE_ID  and pub.run_id='"
-					+ run_id + "' ";
-
+			String s_id = "select ext.TABLE_NAME,ext.TABLE_COUNT, pub.tgt_record_count from \r\n" + 
+					"(select FEED_ID,RUN_ID,SUBSTR(TABLE_NAME, INSTR(TABLE_NAME, '.') + 1) AS TABLE_NAME,TABLE_COUNT \r\n" + 
+					"from JUNIPER_EXT_TABLE_STATUS_VW)ext,\r\n" + 
+					"(select p.PUB_FEED_SEQUENCE, p.FEED_TABLE_ID, p.RUN_ID, p.TGT_RECORD_COUNT , m.EXT_FEED_SEQUENCE from JUNIPER_PUB_FEED_TBL_STATS p , \r\n" + 
+					"JUNIPER_PUB_FEED_DTLS m where p.PUB_FEED_SEQUENCE=m.PUB_FEED_SEQUENCE and m.FEED_TGT_PRJT='"+proj_id+"' and m.FEED_TGT_DS='"+db_id+"') pub\r\n" + 
+					"where ext.FEED_ID=pub.EXT_FEED_SEQUENCE and ext.run_id = pub.run_id and ext.TABLE_NAME = pub.FEED_TABLE_ID  and pub.run_id='"+run_id+"'";
 			Statement statement = conn.createStatement();
 			ResultSet rs = statement.executeQuery(s_id);
 			while (rs.next()) {
@@ -861,7 +839,6 @@ public class PublishingServiceImpl implements PublishingService {
 		ArrayList<String> gcpProjectList = new ArrayList<String>();
 		String query = "select SERVICE_ACCOUNT_NAME from JUNIPER_EXT_GCP_MASTER gp, JUNIPER_PROJECT_MASTER p where p.PROJECT_SEQUENCE=gp.PROJECT_SEQUENCE and p.project_id='"
 				+ proj_id + "' AND gp.GCP_PROJECT='" + gcp_proj_id + "'";
-		System.out.println("sa list query: " + query);
 		Connection conn = null;
 		try {
 			conn = connectionUtils.getConnection();
@@ -883,7 +860,6 @@ public class PublishingServiceImpl implements PublishingService {
 
 	@Override
 	public int addMetaDataForExtractedSource(RequestDto requestDto, int project_sequence) throws Exception {
-		System.out.println(requestDto.toString());
 		String status = "Success";
 		String message = "METADATA INSERTED SUCCESSFULLY";
 		Map<String, String> req_body = requestDto.getBody().get("data");
@@ -958,7 +934,6 @@ public class PublishingServiceImpl implements PublishingService {
 
 	@Override
 	public String saveMetadataChanges(RequestDto requestDto) throws Exception {
-		System.out.println("Message Received :" + requestDto.toString());
 		String status = "";
 		String message = "";
 
@@ -1001,7 +976,6 @@ public class PublishingServiceImpl implements PublishingService {
 	@Override
 	public String savePartitionDetails(RequestDto requestDto) throws Exception {
 
-		System.out.println("Message Received :" + requestDto.toString());
 
 		String status = "";
 		String message = "";
@@ -1070,7 +1044,6 @@ public class PublishingServiceImpl implements PublishingService {
 			conn = connectionUtils.getConnection();
 			String s_id = "select GCP_PROJ_NAME,SERVICE_ACC_NAME,FEED_TGT_DS from JUNIPER_PUB_FEED_DTLS where PUB_FEED_SEQUENCE='"
 					+ pub_feed_id + "'";
-			System.out.println(s_id);
 			Statement statement = conn.createStatement();
 			ResultSet rs = statement.executeQuery(s_id);
 			while (rs.next()) {
@@ -1091,7 +1064,6 @@ public class PublishingServiceImpl implements PublishingService {
 
 	@Override
 	public String updateDataType(RequestDto requestDto) throws Exception {
-		System.out.println("Message Received :" + requestDto.toString());
 		String status = "";
 		String message = "";
 		DataTypeMappingDto dto = new DataTypeMappingDto();
@@ -1123,10 +1095,10 @@ public class PublishingServiceImpl implements PublishingService {
 	}
 
 	@Override
-	public String insertScheduleMetadata( String feed_name, String gcp_name, String tgt_name, String project, String cron)
+	public String insertScheduleMetadata( String feed_name,String feed_id, String gcp_details, String project, String cron)
 			throws Exception {
 		try {
-			return DBUtils.insertScheduleMetadata(connectionUtils.getConnection(), feed_name,gcp_name,tgt_name, project, cron);
+			return DBUtils.insertScheduleMetadata(connectionUtils.getConnection(), feed_name,feed_id,gcp_details, project, cron);
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1163,4 +1135,77 @@ public class PublishingServiceImpl implements PublishingService {
 		}
 	}
 
+	@Override
+	public ArrayList<String> getProjList() throws Exception {
+		// TODO Auto-generated method stub
+				Connection conn = null;
+				ArrayList<String> run_list = new ArrayList<String>();
+				try {
+					conn = connectionUtils.getConnection();
+					String s_id = "SELECT DISTINCT A.FEED_TGT_PRJT FROM JUNIPER_PUB_FEED_DTLS A, JUNIPER_PUB_FEED_STATUS B WHERE A.PUB_FEED_SEQUENCE=B.PUB_FEED_SEQUENCE AND UPPER(B.STATUS)='SUCCESS'";
+					Statement statement = conn.createStatement();
+					ResultSet rs = statement.executeQuery(s_id);
+					while (rs.next()) {
+						run_list.add(rs.getString(1));
+					}
+					// connectionUtils.closeQuietly(conn);
+					return run_list;
+				} catch (Exception e) {
+					System.out.println("Exception occured "+e);
+					throw e;
+				} finally {
+					conn.close();
+				}
+	}
+
+	@Override
+	public ArrayList<String> getDBList(String proj_id) throws Exception {
+		// TODO Auto-generated method stub
+		Connection conn = null;
+		ArrayList<String> run_list = new ArrayList<String>();
+		try {
+			conn = connectionUtils.getConnection();
+			String s_id = "SELECT DISTINCT A.FEED_TGT_DS FROM JUNIPER_PUB_FEED_DTLS A, JUNIPER_PUB_FEED_STATUS B WHERE A.PUB_FEED_SEQUENCE=B.PUB_FEED_SEQUENCE\r\n" + 
+					"AND UPPER(B.STATUS)='SUCCESS' AND UPPER(A.FEED_TGT_PRJT)=UPPER('"+proj_id+"')";
+			Statement statement = conn.createStatement();
+			ResultSet rs = statement.executeQuery(s_id);
+			while (rs.next()) {
+				run_list.add(rs.getString(1));
+			}
+			// connectionUtils.closeQuietly(conn);
+			return run_list;
+		} catch (Exception e) {
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
+		}
+	}
+
+	@Override
+	public ArrayList<String> reconRunIDs(@Valid String proj_id, @Valid String db_id) throws Exception {
+		// TODO Auto-generated method stub
+		Connection conn = null;
+		ArrayList<String> run_list = new ArrayList<String>();
+		try {
+			conn = connectionUtils.getConnection();
+			String s_id = "SELECT DISTINCT B.RUN_ID FROM JUNIPER_PUB_FEED_DTLS A, JUNIPER_PUB_FEED_STATUS B WHERE A.PUB_FEED_SEQUENCE=B.PUB_FEED_SEQUENCE\r\n" + 
+					"AND UPPER(B.STATUS)='SUCCESS' "
+					+ "AND UPPER(A.FEED_TGT_PRJT)=UPPER('"+proj_id+"')"
+					+ "AND UPPER(A.FEED_TGT_DS)=UPPER('"+db_id+"')";
+			Statement statement = conn.createStatement();
+			ResultSet rs = statement.executeQuery(s_id);
+			while (rs.next()) {
+				run_list.add(rs.getString(1));
+			}
+			// connectionUtils.closeQuietly(conn);
+			return run_list;
+		} catch (Exception e) {
+			System.out.println("Exception occured "+e);
+			throw e;
+		} finally {
+			conn.close();
+		}
+	}
+	
 }

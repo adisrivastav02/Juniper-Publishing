@@ -1,16 +1,30 @@
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
-
-<input type="hidden" id="src_sys_id" name="src_sys_id" value="${src_sys_id}">
+<script>
+$(document).ready(function () {
+	$("#db_id").change(function() {
+		var db_id = $(this).val();	
+		var proj_id=document.getElementById('proj_id').value;
+		$.post('/publishing/reconRunIds', {
+			proj_id : proj_id,
+			db_id : db_id
+			}, function(data) {
+				$('#reconRunIDList').html(data)
+			});
+	})
+});	
+</script>
+<input type="hidden" id="proj_id" name="proj_id" value="${proj_id}">
 <div class="form-group row">
 	<div class="col-md-3">
-		<label class="align-middle">Run ID<span style="color:red">*</span></label> 
+		<label class="align-middle">Dataset Name<span style="color:red">*</span></label> 
 	</div>
 	<div class="col-md-9">
-	<select name="recon_runId" id="recon_runId" class="form-control">
-		<option value="" selected disabled>Select RUN ID..</option>
-		<c:forEach items="${runIDList}" var="runID">
-			<option value="${runID}">${runID}</option>
+	<select name="db_id" id="db_id" class="form-control">
+		<option value="" selected disabled>Select dataset name..</option>
+		<c:forEach items="${db_list}" var="db">
+			<option value="${db}">${db}</option>
 		</c:forEach>
 	</select>
 	</div>
 </div>
+<div id="reconRunIDList"></div>

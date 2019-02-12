@@ -205,8 +205,8 @@
    	var y = '{"header":{"user":"cdg_admin","service_account":"Publishing_CDG_UK","reservoir_id":"R0001","event_time":"today"},"body":{"data":'+JSON.stringify(data)+'}}';
    	      
    	document.getElementById('y').value = y;
-   	alert(y);
-   	console.log(y); 
+   	//alert(y);
+   	//console.log(y); 
    	}
    
    function jsonFinalConstruct()
@@ -289,23 +289,23 @@
                   <div class="stepwizard">
                      <div class="stepwizard-row setup-panel">
                         <div class="stepwizard-step col-xs-3">
-                           <a href="#step-1" type="button" class="btn btn-success btn-circle">1</a>  <!-- style="pointer-events: none; cursor: default;" -->
+                           <a href="#step-1" type="button" class="btn btn-success btn-circle" style="pointer-events: none; cursor: default;">1</a>  <!-- style="pointer-events: none; cursor: default;" -->
                            <p><small>Add Feed Details</small></p>
                         </div>
                         <div class="stepwizard-step col-xs-3">
-                           <a href="#step-2" type="button" class="btn btn-default btn-circle">2</a>
+                           <a href="#step-2" type="button" class="btn btn-default btn-circle" style="pointer-events: none; cursor: default;">2</a>
                            <p><small>Metadata Changes</small></p>
                         </div>
                         <div class="stepwizard-step col-xs-3">
-                           <a href="#step-3" type="button" class="btn btn-default btn-circle" >3</a>
+                           <a href="#step-3" type="button" class="btn btn-default btn-circle" style="pointer-events: none; cursor: default;">3</a>
                            <p><small>Target Partitioning</small></p>
                         </div>
                         <div class="stepwizard-step col-xs-3">
-                           <a href="#step-4" type="button" class="btn btn-default btn-circle">4</a>
+                           <a href="#step-4" type="button" class="btn btn-default btn-circle" style="pointer-events: none; cursor: default;">4</a>
                            <p><small>Verify Feed Details</small></p>
                         </div>
                         <div class="stepwizard-step col-xs-3">
-                           <a href="#step-5" type="button" class="btn btn-default btn-circle">5</a>
+                           <a href="#step-5" type="button" class="btn btn-default btn-circle" style="pointer-events: none; cursor: default;">5</a>
                            <p><small>Publishing Data</small></p>
                         </div>
                      </div>
@@ -671,7 +671,7 @@
                            <div class="panel-body">
                               <div class="row">
                                  <div class="col-md-6 stretch-card grid-margin">
-                                    <div class="card bg-gradient-light card-img-holder text-black">
+                                    <div class="card bg-gradient-danger card-img-holder text-black">
                                        <div class="card-body">
                                           <img src="${pageContext.request.contextPath}/assets/img/circle.svg" class="card-img-absolute" alt="circle-image"/>
                                           <h3 class="font-weight-normal mb-3">Feed Details</h3>
@@ -708,13 +708,13 @@
                                     </div>
                                  </div>
                                  <div class="col-md-6 stretch-card grid-margin">
-                                    <div class="card bg-gradient-light card-img-holder text-black">
+                                    <div class="card bg-gradient-info card-img-holder text-black">
                                        <div class="card-body">
                                           <img src="${pageContext.request.contextPath}/assets/img/circle.svg" class="card-img-absolute" alt="circle-image"/>
                                           <h3 class="font-weight-normal mb-3">Table Details</h3>
                                           <div class="table-responsive">
                                              <table class="table table-hover table-sm table-bordered shadow  table-bordered p-3 bg-white rounded">
-                                                <thead>
+                                                <thead> 
                                                    <tr class="table-info">
                                                       <th class="text-center">Table Name</th>
                                                       <th class="text-center">Extracted Type</th>
@@ -756,7 +756,7 @@
                                     </div>
                                  </div>
                                  <div class="col-md-6 stretch-card grid-margin">
-                                    <div class="card bg-gradient-light card-img-holder text-black">
+                                    <div class="card bg-gradient-success card-img-holder text-black">
                                        <div class="card-body">
                                           <img src="${pageContext.request.contextPath}/assets/img/circle.svg" class="card-img-absolute" alt="circle-image"/>
                                           <h3 class="font-weight-normal mb-3">Target Partitioning</h3>
@@ -817,7 +817,7 @@
                               <%-- <label>Feed Name :</label> ${feed_name.src_unique_name}
                                  <label>Run ID :</label> ${run_id} --%>
                                  <div class="col-md-10 stretch-card grid-margin">
-                                    <div class="card bg-gradient-light card-img-holder text-black">
+                                    <div class="card bg-gradient-success card-img-holder text-white">
                                        <div class="card-body">
                                           <img src="${pageContext.request.contextPath}/assets/img/circle.svg" class="card-img-absolute" alt="circle-image"/>
                                           <h3 class="font-weight-normal mb-3">Feed Details</h3>

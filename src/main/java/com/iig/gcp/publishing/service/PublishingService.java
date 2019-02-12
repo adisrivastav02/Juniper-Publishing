@@ -32,8 +32,7 @@ public interface PublishingService {
 		public Map<String, List<String>> getSourceFields(int src_sys_id) throws Exception;
 		public Map<String, List<String>> getSourceAllFields(int src_sys_id) throws Exception;
 		public Map<String, String>  getReconSysIds() throws Exception; 
-		public ArrayList<String> reconRunIDs(Integer src_id) throws Exception;
-		public ArrayList<ReconDashboardBean> reconDashData(Integer src_id, String run_id) throws Exception;
+		public ArrayList<ReconDashboardBean> reconDashData(String proj_id,String db_id,String run_id) throws Exception;
 		public Map<String, String> getPubFeedIDs(String project) throws Exception;
 		public ArrayList<String> populateGoogleProject(String project) throws Exception;
 		public ArrayList<String> populateServiceAccList(@Valid String gcp_proj_id, String proj_id) throws Exception;
@@ -49,4 +48,7 @@ public interface PublishingService {
 		public void insertScheduleMetadataWithDependent(String extractFeedSequence,String pubFeedSequence, String feedUniqueName,String gcpName,String saNAme, String projectId)throws Exception;
 		public int getPublishingFeedId(String googleProjectName, String targetDSName)throws Exception;
 		public String getFeedExtractionType(String feedName)throws Exception;
+		public ArrayList<String> getProjList() throws Exception;
+		public ArrayList<String> getDBList(@Valid String proj_id) throws Exception;
+		public ArrayList<String> reconRunIDs(@Valid String proj_id, @Valid String db_id) throws Exception;
 	}
