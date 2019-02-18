@@ -281,8 +281,31 @@ public class DBUtils {
 		Statement statement = conn.createStatement();
 
 		statement.execute(insertFieldEntry);
-		
+		insertRowNum(conn,pub_feed_id,ext_feed_id);
+		System.out.println("Row_Num checked Completed");
 
+	}
+	
+	
+	private static void insertRowNum(Connection conn,int pub_feed_id,String ext_feed_id) throws SQLException {
+		String tableName = "JUNIPER_PUB_FEED_FLD_DTLS";
+		String query = "select t1.COLUMNS,t1.TABLE_NAME, t2.fcount from JUNIPER_EXT_TABLE_MASTER t1, (select FEED_TABLE_ID, count(FEED_FLD_POS_NUM) as fcount from JUNIPER_PUB_FEED_FLD_DTLS where PUB_FEED_SEQUENCE="+pub_feed_id+" group by FEED_TABLE_ID ) t2 where t1.TABLE_NAME=t2.FEED_TABLE_ID and t1.FEED_SEQUENCE="+ext_feed_id ;
+		System.out.println("QQQQ: " + query);
+		
+		String insertFieldEntry = "";
+		Statement statement=conn.createStatement(); 
+		ResultSet rs = statement.executeQuery(query);
+		Statement statement1=conn.createStatement();
+		while(rs.next()) {
+			System.out.println("Source Type is " + rs.getString(1));
+			if(rs.getString(1).equalsIgnoreCase("all")) {
+			insertFieldEntry = "insert into " + tableName + " (PUB_FEED_SEQUENCE,FEED_TABLE_id ,FEED_fld_pos_num ,FEED_sch_name ,FEED_fld_name ,FEED_fld_desc ,FEED_fld_data_typ,trg_fld_data_typ ,fld_null_flg ,tgt_tbl_prtn_flg ,pii_flg  ,fxd_fld_strt_idx ,fxd_fld_end_idx ,fxd_fld_len ,pkey ,CREATED_DATE ,UPDATED_DATE ,CREATED_BY ,UPDATED_BY) values ( "
+					+ pub_feed_id +"  , '"+ rs.getString(2)+"'," + rs.getInt(3)+",  null , 'RNUM' , 'RNUM' , 'VARCHAR2' , 'STRING' ,  null ,  null  ,  null  ,  null  ,  null  ,  null  ,  null , '"+new Date()+"' , '"+new Date()+"' , ' ' , ' ' )" ;
+			System.out.println(insertFieldEntry);
+			statement1.execute(insertFieldEntry);
+			}
+			
+		}
 	}
 	
 	private static String getDataTypeMappingQuery(int pub_feed_id, String sourceColume, Connection conn) throws SQLException {
