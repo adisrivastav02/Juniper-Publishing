@@ -1871,14 +1871,14 @@ public static String insertOnDemandScheduleMetadata(Connection conn,String feed_
 	String insertQuery="";
 	int project_sequence=0;
 	project_sequence=getProjectSequence(conn, project);
-	
+	deleteExisitingOnDemandJob(conn,feed_id);
 	try {
 
 	insertQuery=OracleConstants.INSERTQUERY.replace("{$table}", OracleConstants.SCHEDULETABLE)
 			.replace("{$columns}", "job_id,job_name,batch_id,command,argument_1,argument_2,argument_3,argument_4,argument_5,daily_flag,job_schedule_time,project_id,feed_id,SCHEDULE_TYPE")
-			.replace("{$data}",OracleConstants.QUOTE+feed_name+"_OneTimePublish"+OracleConstants.QUOTE+OracleConstants.COMMA
-					+OracleConstants.QUOTE+feed_name+"_OneTimePublish"+OracleConstants.QUOTE+OracleConstants.COMMA
-					+OracleConstants.QUOTE+feed_name+"_OneTimePublish"+OracleConstants.QUOTE+OracleConstants.COMMA
+			.replace("{$data}",OracleConstants.QUOTE+feed_name+"_OneTimePublish_" + gcp_details.split(":")[0] + "_" + gcp_details.split(":")[1] +OracleConstants.QUOTE+OracleConstants.COMMA
+					+OracleConstants.QUOTE+feed_name+"_OneTimePublish_"+ gcp_details.split(":")[0] + "_" + gcp_details.split(":")[1] +OracleConstants.QUOTE+OracleConstants.COMMA
+					+OracleConstants.QUOTE+feed_name+"_OneTimePublish_"+ gcp_details.split(":")[0] + "_" + gcp_details.split(":")[1] +OracleConstants.QUOTE+OracleConstants.COMMA
 					+OracleConstants.QUOTE+script_loc+OracleConstants.QUOTE+OracleConstants.COMMA
 					+OracleConstants.QUOTE+feed_name+OracleConstants.QUOTE+OracleConstants.COMMA
 					+OracleConstants.QUOTE+gcp_details +OracleConstants.QUOTE+OracleConstants.COMMA
@@ -1905,6 +1905,13 @@ public static String insertOnDemandScheduleMetadata(Connection conn,String feed_
 	return "success";
 }
 
+
+private static void deleteExisitingOnDemandJob(Connection conn, String feed_id) throws SQLException {
+	
+	String query = "delete from "+OracleConstants.SCHEDULETABLE+" where ARGUMENT_5 = 'O' and feed_id ='" +feed_id + "'";
+	Statement statement = conn.createStatement();
+	ResultSet rs = statement.executeQuery(query);
+}
 
 public static void insertScheduleMetadataWithDependent(Connection conn,String extractFeedSequence,String pubFeedSequence, String feedUniqueName,String gcpName,String saNAme, String projectId)throws Exception{
 	

@@ -17,8 +17,8 @@
 
 </div> --%>
 
-	<div class="form-group">
-		<!-- <div class="row"><div class="col-md-3"><label>Run Id's to be Published <span style="color:red">*</span></label> </div>
+	<!--<div class="form-group">
+		 <div class="row"><div class="col-md-3"><label>Run Id's to be Published <span style="color:red">*</span></label> </div>
 		
 		<div class="col-md-9"><div class="input-group">
                       <input id="d" class="form__daterange">
@@ -51,7 +51,7 @@
                                           </c:forEach> --%>
                                           
                                           
-		</div>
+		<!-- </div>-->
 
 <script>
 	var x3=document.getElementById("col_name");

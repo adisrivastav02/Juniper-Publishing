@@ -1003,7 +1003,7 @@
     	$("#dsradio4").on("change", function() {
     		// $("#pubDropDown").hide();
             //$("#pubText").show();
-             $('#loadRunIds1').hide();
+             $('#loadRunIds1').html("");
              document.getElementById('is_new').value='yes';
              var src_sys_id = document.getElementById('src_sys_id').value;	
              //alert(src_sys_id);
@@ -1031,6 +1031,8 @@
        	$("#dsradio3").on("change", function() {
                $("#ds3").show();
                $("#ds4").hide();
+               document.getElementById('target_dataset3').value="";
+               $('#loadRunIds').html("");
            })
        	$("#dsradio4").on("change", function(){
                $("#ds4").show();
@@ -1047,7 +1049,7 @@
    			target_dataset : tgt_ds_name + ':' + google_project_name ,
    			is_new : 'no'
    		}, function(data) {
-   			$('#loadRunIds').hide();
+   			$('#loadRunIds').html("");
    			$('#loadRunIds1').show();
    			$('#loadRunIds1').html(data);
    		});
